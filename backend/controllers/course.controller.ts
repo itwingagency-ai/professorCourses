@@ -67,13 +67,27 @@ export const uploadCourse = CatchAsyncError(
       const data = req.body;
       const thumbnail = data.thumbnail;
       if (thumbnail) {
-        const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
-          folder: "courses",
-        });
-        data.thumbnail = {
-          public_id: myCloud.public_id,
-          url: myCloud.secure_url,
-        };
+        if (typeof thumbnail === "string" && thumbnail.startsWith("http")) {
+            // Already a URL, probably from seed or external
+            data.thumbnail = {
+                public_id: "external",
+                url: thumbnail
+            };
+        } else if (process.env.CLOUD_NAME && process.env.CLOUD_API_KEY && process.env.CLOUD_SECRET_KEY) {
+            const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
+              folder: "courses",
+            });
+            data.thumbnail = {
+              public_id: myCloud.public_id,
+              url: myCloud.secure_url,
+            };
+        } else {
+            console.log("⚠️ Cloudinary not configured. Using placeholder for thumbnail.");
+            data.thumbnail = {
+                public_id: "placeholder",
+                url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg"
+            };
+        }
       }
       createCourse(data, res, next);
 
@@ -155,23 +169,37 @@ export const editCourse = CatchAsyncError(
         data.thumbnail = thumbnail;
       } else if (thumbnail && typeof thumbnail === "string" && !thumbnail.startsWith("https")) {
         // If thumbnail is a string but not a URL, upload it to Cloudinary.
-        await cloudinary.v2.uploader.destroy(courseData.thumbnail.public_id);
-        const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
-          folder: "courses",
-        });
-        data.thumbnail = {
-          public_id: myCloud.public_id,
-          url: myCloud.secure_url,
-        };
+        if (process.env.CLOUD_NAME && process.env.CLOUD_API_KEY && process.env.CLOUD_SECRET_KEY) {
+            if (courseData.thumbnail && courseData.thumbnail.public_id && courseData.thumbnail.public_id !== "placeholder") {
+                await cloudinary.v2.uploader.destroy(courseData.thumbnail.public_id);
+            }
+            const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
+              folder: "courses",
+            });
+            data.thumbnail = {
+              public_id: myCloud.public_id,
+              url: myCloud.secure_url,
+            };
+        } else {
+            console.log("⚠️ Cloudinary not configured. Skipping upload, preserving existing or using placeholder.");
+            data.thumbnail = courseData.thumbnail || {
+                public_id: "placeholder",
+                url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg"
+            };
+        }
       } else if (thumbnail && typeof thumbnail === "string" && thumbnail.startsWith("https")) {
-        // If thumbnail is a URL, preserve the existing thumbnail.
+        // If thumbnail is a URL, preserve the existing thumbnail or use the URL.
         data.thumbnail = {
-          public_id: courseData?.thumbnail.public_id,
-          url: courseData?.thumbnail.secure_url,
+          public_id: courseData?.thumbnail?.public_id || "placeholder",
+          url: thumbnail,
         };
       } else {
         // Invalid thumbnail format
-        throw new ErrorHandler("Invalid thumbnail format. Provide a valid object or string.", 400);
+        console.log("⚠️ Invalid thumbnail format. Using existing or placeholder.");
+        data.thumbnail = courseData.thumbnail || {
+            public_id: "placeholder",
+            url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg"
+        };
       }
 
       const course = await CourseModel.findByIdAndUpdate(

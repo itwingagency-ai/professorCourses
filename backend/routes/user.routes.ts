@@ -26,7 +26,12 @@ userRouter.post("/login", loginUser);
 // logged out
 userRouter.get("/logout", updateAccessToken, isAuthenticated, logoutUser);
 // refresh token or update
-userRouter.get("/refresh", updateAccessToken);
+userRouter.get("/refresh", updateAccessToken, (req, res) => {
+  res.status(200).json({
+    success: true,
+    accessToken: req.cookies.access_token,
+  });
+});
 // get user info
 userRouter.get("/me",updateAccessToken, isAuthenticated, getUserInfo);
 // social auth socialAuth

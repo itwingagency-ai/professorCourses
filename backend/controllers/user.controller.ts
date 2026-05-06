@@ -176,17 +176,18 @@ export const loginUser = CatchAsyncError(
 export const logoutUser = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      res.cookie("access_token", "", { maxAge: 1 });
-      res.cookie("refresh_token", "", { maxAge: 1 });
-      // delete redis
-      const userId = (req.user?._id as string) || "";
-      redis.del(userId);
+      res.cookie("access_token", "", { ...accessTokenOptions, maxAge: 1 });
+      res.cookie("refresh_token", "", { ...refreshTokenOptions, maxAge: 1 });
+      
+      const userId = req.user?._id as string;
+      if (userId) {
+        await redis.del(userId);
+      }
+      
       res.status(200).json({
         success: true,
-        message: " Logged Out Successfully",
+        message: "Logged Out Successfully",
       });
-      // after logged out we need to delete redis session and for this we need protected rout
-      // middleware->auth.ts
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
@@ -198,14 +199,17 @@ export const updateAccessToken = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const refresh_token = req.cookies.refresh_token as string;
-      //console.log(refresh_token);
+      if (!refresh_token) {
+        return next(new ErrorHandler("Please login to access this resource", 400));
+      }
+
       const decoded = jwt.verify(
         refresh_token,
         process.env.REFRESH_TOKEN as string
       ) as JwtPayload;
-      const message = "could not refresh token";
+
       if (!decoded) {
-        return next(new ErrorHandler(message, 400));
+        return next(new ErrorHandler("Refresh token is not valid", 400));
       }
 
       const session = await redis.get(decoded.id as string);
@@ -214,7 +218,9 @@ export const updateAccessToken = CatchAsyncError(
           new ErrorHandler("Please login to access this resources!", 400)
         );
       }
+
       const user = JSON.parse(session);
+
       const accessToken = jwt.sign(
         { id: user._id },
         process.env.ACCESS_TOKEN as string,
@@ -222,6 +228,7 @@ export const updateAccessToken = CatchAsyncError(
           expiresIn: "5m",
         }
       );
+
       const refreshToken = jwt.sign(
         { id: user._id },
         process.env.REFRESH_TOKEN as string,
@@ -229,17 +236,14 @@ export const updateAccessToken = CatchAsyncError(
           expiresIn: "3d",
         }
       );
-      // seting updated token
+
       req.user = user;
+
       res.cookie("access_token", accessToken, accessTokenOptions);
       res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
-      await redis.set(user._id, JSON.stringify(user), "EX", 604800); // 7 days Expiray
-      // for Api development
-      // res.status(201).json({
-      //   status: "success",
-      //   accessToken,
-      // });
+      await redis.set(user._id, JSON.stringify(user), "EX", 604800); // 7 days expiry
+
       next();
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));

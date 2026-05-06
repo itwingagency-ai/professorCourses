@@ -1,7 +1,9 @@
 node_modules/
 .env
+.env.local
 .env.docker
 .next/
 dist/
 build/
 .DS_Store
+*.zip

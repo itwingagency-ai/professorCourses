@@ -1,0 +1,19 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: lms_mongo_dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - lms_mongo_data_dev:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: lms_redis_dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+volumes:
+  lms_mongo_data_dev:

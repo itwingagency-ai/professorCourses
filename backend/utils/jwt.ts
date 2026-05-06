@@ -11,44 +11,45 @@ interface ITokenOptions {
   secure?: boolean;
 }
 
-// parse enviroment variable to integrate with fallback values
+// parse environment variable to integrate with fallback values
 const accessTokenExpire = parseInt(
   process.env.ACCESS_TOKEN_EXPIRE || "300",
   10
 );
 const refreshTokenExpire = parseInt(
-  process.env.REFRESH_TOKEN_EXPIRE || "300",
+  process.env.REFRESH_TOKEN_EXPIRE || "1200",
   10
 );
 
 // OPTIONS FOR COOKIES
 export const accessTokenOptions: ITokenOptions = {
-  expires: new Date(Date.now() + accessTokenExpire * 60 * 60 * 1000), // 5 days
+  expires: new Date(Date.now() + accessTokenExpire * 60 * 60 * 1000),
   maxAge: accessTokenExpire * 60 * 60 * 1000,
   httpOnly: true,
   sameSite: "lax",
-  secure: process.env.NODE_ENV === "production", // Only use secure in production
+  secure: process.env.NODE_ENV === "production",
 };
+
 export const refreshTokenOptions: ITokenOptions = {
-  expires: new Date(Date.now() + refreshTokenExpire * 24 * 60 * 60 * 1000), // 3 days
+  expires: new Date(Date.now() + refreshTokenExpire * 24 * 60 * 60 * 1000),
   maxAge: refreshTokenExpire * 24 * 60 * 60 * 1000,
   httpOnly: true,
   sameSite: "lax",
-  // Only use secure in production
+  secure: process.env.NODE_ENV === "production",
 };
 
 export const sendToken = (user: IUser, statusCode: number, res: Response) => {
   const accessToken = user.SignAccessToken();
   const refreshToken = user.SignRefreshToken();
 
-  // upload session to redis _id
-  redis.set(user.id, JSON.stringify(user) as any);
+  // upload session to redis with expiry (7 days)
+  redis.set(user._id as string, JSON.stringify(user), "EX", 604800);
 
   res.cookie("access_token", accessToken, accessTokenOptions);
   res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
   res.status(statusCode).json({
-    status: "success",
+    success: true,
     user,
     accessToken,
   });
