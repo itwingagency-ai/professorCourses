@@ -1,44 +1,37 @@
+"use client";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-'use client'
-import React, { FC, useState } from 'react'
-import Header from '../components/Header';
-import Protected from '../hooks/useprotected';
-import Heading from '../utils/Heading';
-import { useSelector } from 'react-redux';
-import Profile from '../components/Profile/Profile';
-type Props = {}
+import React, { FC, useState } from "react";
+import { useSelector } from "react-redux";
+import Header from "../components/Header";
+import Heading from "../utils/Heading";
+import Protected from "../hooks/useprotected";
+import Profile from "../components/Profile/Profile";
 
-const page: FC<Props> = (props) => {
+const Page: FC = () => {
+  const [open, setOpen] = useState(false);
+  const [route, setRoute] = useState("Login");
+  const { user } = useSelector((state: any) => state.auth);
 
-    const [open, setOpen] = useState(false);
-    const [activeItem, setAactiveItem] = useState(0); // count from 0
-    // important for the popup
-    const [route, setRoute] = useState("Login");
-    const { user } = useSelector((state: any) => state.auth);
-    {/* we have created some cutome hooks in the app/hooksfolder for validating user, if user is logged in then he can access the profile page */ }
-    return (
-        <div>
-            <Protected>
-                {/* calling the heading helper function from utils folder */}
-                <Heading
-                    title={`${user?.name} profile - the3S`}
-                    description="Your trusted partner for digital transformation"
-                    keywords="Programming, MERN, Redux, Machine Learning"
-                />
-                <Header
-                    open={open}
-                    setOpen={setOpen}
-                    activeItem={activeItem}
-                    setRoute={setRoute}
-                    route={route}
-                />
-                <Profile user = {user}/>
-            </Protected>
-        </div>
-    )
-}
+  return (
+    <Protected>
+      <Heading
+        title={`${user?.name || "Profile"} - 3S Consultant`}
+        description="User profile"
+        keywords="profile, LMS"
+      />
 
-export default page;
+      <Header
+        open={open}
+        setOpen={setOpen}
+        activeItem={1}
+        setRoute={setRoute}
+        route={route}
+      />
+
+      <Profile user={user} />
+    </Protected>
+  );
+};
+
+export default Page;

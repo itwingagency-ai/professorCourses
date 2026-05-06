@@ -385,6 +385,19 @@ export const updateProfilePicture = CatchAsyncError(
         return next(new ErrorHandler("User not found", 404));
       }
       if (avatar && user) {
+        if (
+          !process.env.CLOUD_NAME ||
+          !process.env.CLOUD_API_KEY ||
+          !process.env.CLOUD_SECRET_KEY
+        ) {
+          return next(
+            new ErrorHandler(
+              "Cloudinary is not configured. Avatar upload is disabled in local development.",
+              500
+            )
+          );
+        }
+
         // if user have the old image
         if (user?.avatar?.public_id) {
           // first delete the old Image

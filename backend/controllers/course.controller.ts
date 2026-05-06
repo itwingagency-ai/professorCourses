@@ -19,6 +19,47 @@ import sendMail from "../utils/sendMail";
 import NotificationModel from "../models/notification.model";
 import axios from "axios";
 
+const getPurchasedCourseId = (course: any): string | null => {
+  if (!course) return null;
+
+  if (typeof course === "string") {
+    return course;
+  }
+
+  if (course.courseId) {
+    if (typeof course.courseId === "string") {
+      return course.courseId;
+    }
+
+    if (course.courseId._id) {
+      return course.courseId._id.toString();
+    }
+
+    return course.courseId.toString();
+  }
+
+  if (course._id) {
+    return course._id.toString();
+  }
+
+  if (course.id) {
+    return course.id.toString();
+  }
+
+  return null;
+};
+
+const userHasCourseAccess = (userCourseList: any[] | undefined, courseId: string) => {
+  if (!userCourseList || userCourseList.length === 0) {
+    return false;
+  }
+
+  return userCourseList.some((course: any) => {
+    const purchasedId = getPurchasedCourseId(course);
+    return purchasedId === courseId.toString();
+  });
+};
+
 // upload Course
 export const uploadCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -230,24 +271,33 @@ export const getCourseByUser = CatchAsyncError(
     try {
       const userCourseList = req.user?.courses;
       const courseId = req.params.id;
-      const courseExist = userCourseList?.find(
-        (course: any) => course._id.toString() === courseId
-      );
+
+      if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+        return next(new ErrorHandler("Invalid course ID", 400));
+      }
+
+      const courseExist = userHasCourseAccess(userCourseList, courseId);
+
       if (!courseExist) {
         return next(
-          new ErrorHandler(" you are not eligible to access this course", 404)
+          new ErrorHandler("You are not eligible to access this course", 403)
         );
       }
+
       const course = await CourseModel.findById(courseId);
 
-      const content = course?.courseData;
-      if (!course?.courseData || course.courseData.length === 0) {
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
+
+      if (!course.courseData || course.courseData.length === 0) {
         return next(new ErrorHandler("Course content not found or empty", 404));
       }
 
       res.status(200).json({
         success: true,
-        content,
+        course,
+        content: course.courseData,
       });
     } catch (error: any) {
       next(new ErrorHandler(error.message, 500));
@@ -321,9 +371,7 @@ export const addQuestion = CatchAsyncError(
         );
       }
       // Check if the course exists in the user's course list
-      const courseExists = userCourseList?.some(
-        (course: any) => course._id.toString() === courseId.toString()
-      );
+      const courseExists = userHasCourseAccess(userCourseList, courseId);
 
       if (!courseExists) {
         return next(
@@ -336,6 +384,10 @@ export const addQuestion = CatchAsyncError(
 
       // Fetch the course
       const course = await CourseModel.findById(courseId);
+
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
 
       // Validate contentId
       if (!mongoose.Types.ObjectId.isValid(contentId)) {
@@ -482,9 +534,7 @@ export const addReview = CatchAsyncError(
       }
       // check if course already exist in userCourseList based on _id
       // also checking only enrolled student can add review or own can add review
-      const courseExists = userCourseList?.some(
-        (course: any) => course._id.toString() === courseId.toString()
-      );
+      const courseExists = userHasCourseAccess(userCourseList, courseId);
 
       if (!courseExists) {
         return next(
@@ -492,6 +542,10 @@ export const addReview = CatchAsyncError(
         );
       }
       const course = await CourseModel.findById(courseId);
+
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
       const { review, rating } = req.body as IAddReviewData;
       const reviewData: any = {
         user: req.user,

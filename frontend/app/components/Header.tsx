@@ -15,7 +15,7 @@ import SignUp from "../components/Auth/SignUp";
 import Verification from "../components/Auth/Verification";
 import { useSelector } from 'react-redux';
 import { signOut, useSession } from 'next-auth/react';
-import { useLogOutQuery, useSocialAuthMutation } from '@/redux/features/auth/authApi';
+import { useSocialAuthMutation } from '@/redux/features/auth/authApi';
 import toast from 'react-hot-toast';
 type Props = {
     open: boolean;
@@ -31,10 +31,6 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
     const { user } = useSelector((state: any) => state.auth)
     const { data } = useSession(); // for social auth
     const [socialAuth, { isSuccess, error, isLoading }] = useSocialAuthMutation();
-    const [logout, setLogout] = useState(false);
-    // const { } = useLogOutQuery(undefined, {
-    //     skip: !logout ? true : false, // if logout is false then true otherwise false
-    // }); // eslint-disable-line @typescript-eslint/no-unused-vars
 
     useEffect(() => {
         if (!user && data) {
@@ -91,7 +87,7 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
     return (
         <div className='w-full relative'>
             <div className={`${active
-                ? "dark:bg-opacity-50 dark:bg-gradient-to-b dark:from-gray-900 dark:to-black fixed top-0 left-0 w-full h-[80px] z-[80x] border-b dark:border-[#ffffff1c] shadow-xl transition duration-500"
+                ? "dark:bg-opacity-50 dark:bg-gradient-to-b dark:from-gray-900 dark:to-black fixed top-0 left-0 w-full h-[80px] z-[80] border-b dark:border-[#ffffff1c] shadow-xl transition duration-500"
                 : "w-full border-b dark:border-[#ffffff1c] h-[80px] z-[80] dark:shadow"}`}>
                 <div className="w-[95%] 800px:w-[92%] m-auto py-2 h-full">
                     <div className="w-full h-[80px] flex items-center justify-between p-3">
@@ -119,7 +115,7 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
                                     <>
                                         <Link href={"/profile"}>
                                             <Image
-                                                src={user.avatar ? user.avatar.url : avatar}
+                                                src={user?.avatar?.url || avatar}
                                                 alt=""
                                                 width={30}
                                                 height={30}
@@ -155,11 +151,26 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
                         >
                             <div className="w-[70%] fixed z-[999999999] h-screen bg-white dark:bg-slate-900 dark:bg-opacity-90 top-0 right-0">
                                 <NavItems activeItem={activeItem} isMobile={true} />
-                                <HiOutlineUserCircle
+                                {user ? (
+                                  <Link href="/profile">
+                                    <Image
+                                      src={user?.avatar?.url || avatar}
+                                      alt="profile"
+                                      width={35}
+                                      height={35}
+                                      className="w-[35px] h-[35px] rounded-full cursor-pointer ml-5 my-2"
+                                    />
+                                  </Link>
+                                ) : (
+                                  <HiOutlineUserCircle
                                     size={25}
                                     className="cursor-pointer ml-5 my-2 dark:text-white text-black"
-                                    onClick={() => setOpen(true)}
-                                />
+                                    onClick={() => {
+                                      setOpen(true);
+                                      setOpenSidebar(false);
+                                    }}
+                                  />
+                                )}
                                 <br />
                                 <br />
                                 <p className="text-[16px] px-2 pl-5 text-black dark:text-white ">

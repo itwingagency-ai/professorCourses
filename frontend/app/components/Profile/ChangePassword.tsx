@@ -1,95 +1,134 @@
-/* eslint-disable jsx-a11y/role-supports-aria-props */
+"use client";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-import { styles } from '@/app/styles/style';
-import { useUpdatePasswordMutation } from '@/redux/features/user/userApi';
-import React, { FC, useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast';
+import React, { FC, useState } from "react";
+import toast from "react-hot-toast";
+import { useUpdatePasswordMutation } from "@/redux/features/user/userApi";
 
-type Props = {}
+const ChangePassword: FC = () => {
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-const ChangePassword: FC<Props> = () => {
-    const [oldPassword, setOldPassword] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [updatePassword, { isSuccess, error }] = useUpdatePasswordMutation();
-    const passwordChangeHandler = async (e: any) => {
-        e.preventDefault();
-        if (oldPassword === "" || newPassword === "" || confirmPassword === "") {
-            toast.error("Please fill all fields");
-        } else if (newPassword !== confirmPassword) {
-            toast.error("password do not match")
-        } else {
-            await updatePassword({ oldPassword, newPassword })
-        }
-    };
+  const [updatePassword, { isLoading }] = useUpdatePasswordMutation();
 
-    useEffect(() => {
+  const resetForm = () => {
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
 
-        if (isSuccess) {
-            toast.success("Password changed successfully");
-        }
-        if (error) {
-            if ("data" in error) {
-                const errorData = error as any;
-                toast.error(errorData.data.message);
-            }
-        }
-    }, [isSuccess, error])
+  const handlePasswordUpdate = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill all password fields.");
+      return;
+    }
 
-    return (
-        <div className=" w-full pl-7 px-2 800px:px-5 800px:pl-0 min-h-screen ">
-            <h1 className=" block text-[25px] 800px:text-[30px] font-Poppins text-center font-[500] text-black dark:text-[#fff] pb-2 ">
-                Change Password
-            </h1>
+    if (newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters.");
+      return;
+    }
 
-            <div className="w-full">
-                <form
-                    aria-required
-                    onSubmit={passwordChangeHandler}
-                    className="flex flex-col items-center"
-                >
-                    <div className=" w-[100%] 800px:w-[60%] mt-5 ">
-                        <label className="block pb-2 text-black dark:text-[#fff]"> Enter your old Password</label>
-                        <input
-                            type="password"
-                            className={`${styles.input} !w-[95%] mb-4 800px:mb-0  text-black dark:text-[#fff]`}
-                            required
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className=" w-[100%] 800px:w-[60%] mt-2 ">
-                        <label className="block pb-2 text-black dark:text-[#fff] "> Enter your new Password</label>
-                        <input
-                            type="password"
-                            className={`${styles.input} !w-[95%] mb-4 800px:mb-0  text-black dark:text-[#fff]`}
-                            required
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className=" w-[100%] 800px:w-[60%] mt-2 ">
-                        <label className="block pb-2 text-black dark:text-[#fff] "> Enter your Conifrm Password</label>
-                        <input
-                            type="password"
-                            className={`${styles.input} !w-[95%] mb-4 800px:mb-0  text-black dark:text-[#fff]`}
-                            required
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                        />
-                        <input
-                            className=" w-[95%] h-[40px] border border-[#37a39a] text-center  text-black dark:text-[#fff] rounded-[3px] mt-8 cursor-pointer "
-                            required
-                            value="Update"
-                            type="submit"
-                        />
-                    </div>
-                </form>
-            </div>
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password do not match.");
+      return;
+    }
+
+    if (oldPassword === newPassword) {
+      toast.error("New password must be different from old password.");
+      return;
+    }
+
+    try {
+      const response: any = await updatePassword({
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      }).unwrap();
+
+      toast.success(response?.message || "Password updated successfully.");
+      resetForm();
+    } catch (error: any) {
+      toast.error(
+        error?.data?.message ||
+          error?.data?.error ||
+          error?.message ||
+          "Failed to update password."
+      );
+    }
+  };
+
+  return (
+    <div className="w-full px-4 800px:px-10">
+      <div className="mb-8">
+        <h1 className="text-[28px] font-Poppins font-[700] text-black dark:text-white">
+          Change Password
+        </h1>
+
+        <p className="text-gray-600 dark:text-gray-300 mt-2">
+          Update your account password securely.
+        </p>
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] p-5 800px:p-8">
+        <div className="grid grid-cols-1 gap-5">
+          <div>
+            <label className="block text-[15px] font-semibold text-black dark:text-white mb-2">
+              Current Password
+            </label>
+
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(event) => setOldPassword(event.target.value)}
+              className="w-full px-5 py-4 rounded-lg border border-gray-300 dark:border-[#ffffff1d] bg-white dark:bg-slate-950 text-black dark:text-white outline-none focus:border-[#37a39a]"
+              placeholder="Enter current password"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[15px] font-semibold text-black dark:text-white mb-2">
+              New Password
+            </label>
+
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className="w-full px-5 py-4 rounded-lg border border-gray-300 dark:border-[#ffffff1d] bg-white dark:bg-slate-950 text-black dark:text-white outline-none focus:border-[#37a39a]"
+              placeholder="Enter new password"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[15px] font-semibold text-black dark:text-white mb-2">
+              Confirm New Password
+            </label>
+
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className="w-full px-5 py-4 rounded-lg border border-gray-300 dark:border-[#ffffff1d] bg-white dark:bg-slate-950 text-black dark:text-white outline-none focus:border-[#37a39a]"
+              placeholder="Confirm new password"
+            />
+          </div>
+
+          <button
+            onClick={handlePasswordUpdate}
+            disabled={isLoading}
+            className={`w-full 800px:w-fit px-8 py-3 rounded-lg text-white font-semibold transition ${
+              isLoading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#37a39a] hover:opacity-90"
+            }`}
+          >
+            {isLoading ? "Updating..." : "Update Password"}
+          </button>
         </div>
-    )
-}
+      </div>
+    </div>
+  );
+};
 
 export default ChangePassword;

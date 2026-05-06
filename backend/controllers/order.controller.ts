@@ -8,94 +8,177 @@ import path from "path";
 import ejs from "ejs";
 import sendMail from "../utils/sendMail";
 import NotificationModel from "../models/notification.model";
-import { getAllOrdersService, newOrder } from "../services/order.services";
+import { getAllOrdersService } from "../services/order.services";
 import mongoose from "mongoose";
+import { redis } from "../utils/redis";
 
-// create order
+const getPurchasedCourseId = (course: any): string | null => {
+  if (!course) return null;
+
+  if (typeof course === "string") {
+    return course;
+  }
+
+  if (course.courseId) {
+    if (typeof course.courseId === "string") {
+      return course.courseId;
+    }
+
+    if (course.courseId._id) {
+      return course.courseId._id.toString();
+    }
+
+    return course.courseId.toString();
+  }
+
+  if (course._id) {
+    return course._id.toString();
+  }
+
+  if (course.id) {
+    return course.id.toString();
+  }
+
+  return null;
+};
+
+const normalizeId = (id: any): string => {
+  return id?.toString ? id.toString() : String(id);
+};
 
 export const createOrder = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { courseId, payment_info, userId } = req.body as IOrder;
+      const { courseId, payment_info } = req.body as IOrder;
+
+      if (!courseId) {
+        return next(new ErrorHandler("Course ID is required", 400));
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        return next(new ErrorHandler("Invalid course ID", 400));
+      }
+
       const user = await userModel.findById(req.user?._id);
-      const courseExistInUser = user?.courses.some(
-        (course: any) => course._id.toString() === courseId
-      );
+
+      if (!user) {
+        return next(new ErrorHandler("User not found. Please login again.", 404));
+      }
+
+      const course = await CourseModel.findById(courseId);
+
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
+
+      const normalizedCourseId = normalizeId(courseId);
+
+      const courseExistInUser = user.courses?.some((userCourse: any) => {
+        const purchasedId = getPurchasedCourseId(userCourse);
+        return purchasedId === normalizedCourseId;
+      });
 
       if (courseExistInUser) {
-        return next(
-          new ErrorHandler("you have already purchased this course", 400)
-        );
-      }
-      const course = await CourseModel.findById(courseId);
-      if (!course) {
-        return next(new ErrorHandler("course not found", 404));
+        return res.status(200).json({
+          success: true,
+          alreadyPurchased: true,
+          message: "You have already purchased this course",
+          course,
+          user,
+        });
       }
 
-      const data: any = {
-        courseId: course._id,
-        userId: user?._id,
-        payment_info,
-      };
-
-      const mailData = {
-        user: {
-          name: req.user?.name, // Assuming req.user contains the logged-in user's details
-          email: req.user?.email, // Assuming req.user contains the logged-in user's email
-        },
-        order: {
-          // _id : course._id.slice(0,6),
-          // _id : course._id.toString().slice(0,6),
-          _id: (course._id as mongoose.Types.ObjectId).toString().slice(0, 6),
-          name: course.name,
-          price: course.price,
-          date: new Date().toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }),
+      const orderData: any = {
+        courseId: course._id.toString(),
+        userId: user._id.toString(),
+        payment_info: payment_info || {
+          type: "local-mock",
+          status: "success",
         },
       };
 
-      const html = await ejs.renderFile(
-        path.join(__dirname, "../mails/order-confirmation.ejs"),
-        { user: mailData.user, order: mailData.order }
-      );
+      const order = await OrderModel.create(orderData);
+
+      user.courses.push({
+        courseId: course._id.toString(),
+        name: course.name,
+        title: course.name,
+        thumbnail: course.thumbnail,
+        purchasedAt: new Date(),
+      });
+
+      await user.save();
+
+      course.purchased = course.purchased ? course.purchased + 1 : 1;
+      await course.save();
+
+      await redis.set(user._id.toString(), JSON.stringify(user), "EX", 604800);
+
       try {
-        if (user) {
+        const mailData = {
+          user: {
+            name: user.name,
+            email: user.email,
+          },
+          order: {
+            _id: course._id.toString().slice(0, 6),
+            name: course.name,
+            price: course.price,
+            date: new Date().toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+          },
+        };
+
+        if (
+          process.env.SMTP_HOST &&
+          process.env.SMTP_USER &&
+          process.env.SMTP_PASSWORD
+        ) {
           await sendMail({
             email: user.email,
             subject: "Order Confirmation",
             template: "order-confirmation.ejs",
             data: mailData,
           });
+        } else {
+          console.log("SMTP not configured. Skipping order confirmation email.");
         }
-      } catch (error: any) {
-        return next(new ErrorHandler(error.message, 400));
+      } catch (emailError: any) {
+        console.warn(
+          "Order created successfully, but email failed:",
+          emailError?.message
+        );
       }
-      // add course to the user dashboard
-      // user?.courses.push(course?._id);
-      (user?.courses as unknown as string[]).push(course?._id as string);
-      await user?.save();
 
-      // send notification
-      await NotificationModel.create({
-        user: user?._id,
-        title: " New Order",
-        message: `You have a new order from ${course?.name} `,
+      try {
+        await NotificationModel.create({
+          user: user._id,
+          title: "New Order",
+          message: `You have a new order from ${course.name}`,
+        });
+      } catch (notificationError: any) {
+        console.warn(
+          "Order created successfully, but notification failed:",
+          notificationError?.message
+        );
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: "Course enrolled successfully",
+        order,
+        course,
+        user,
       });
-      //   course.purchased ? course.purchased +=1: course.purchased;
-      course.purchased = course.purchased ? course.purchased + 1 : 1;
-
-      await course.save();
-      newOrder(data, res, next);
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
   }
 );
 
-// get all orders --- only for admin
 export const getAllOrders = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -1,55 +1,86 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiSlice } from "../api/apiSlice";
+import { UserLoggedIn } from "../auth/authSlice";
 
 export const userApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    updateProfile: builder.mutation({
+      query: (data: { name?: string }) => ({
+        url: "update-user-info",
+        method: "PUT",
+        body: data,
+        credentials: "include" as const,
+      }),
+
+      async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+        try {
+          const result = await queryFulfilled;
+
+          if (result?.data?.user) {
+            dispatch(
+              UserLoggedIn({
+                accessToken: result.data?.accessToken,
+                user: result.data.user,
+              })
+            );
+          }
+        } catch (error) {
+          console.log("Update profile failed:", error);
+        }
+      },
+
+      invalidatesTags: ["User"],
+    }),
+
     updateAvatar: builder.mutation({
-      query: (avatar) => ({
+      query: (avatar: string) => ({
         url: "update-user-avatar",
         method: "PUT",
         body: { avatar },
         credentials: "include" as const,
       }),
+
+      async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+        try {
+          const result = await queryFulfilled;
+
+          if (result?.data?.user) {
+            dispatch(
+              UserLoggedIn({
+                accessToken: result.data?.accessToken,
+                user: result.data.user,
+              })
+            );
+          }
+        } catch (error) {
+          console.log("Update avatar failed:", error);
+        }
+      },
+
+      invalidatesTags: ["User"],
     }),
-    editProfile: builder.mutation({
-      query: ({ name }) => ({
-        url: "update-user-info",
-        method: "PUT",
-        body: { name },
-        credentials: "include" as const,
-      }),
-    }),
+
     updatePassword: builder.mutation({
-      query: ({ oldPassword, newPassword }) => ({
+      query: (data: {
+        oldPassword: string;
+        newPassword: string;
+        confirmPassword?: string;
+      }) => ({
         url: "update-user-password",
         method: "PUT",
-        body: { oldPassword, newPassword },
+        body: data,
         credentials: "include" as const,
       }),
+
+      invalidatesTags: ["User"],
     }),
-    // get all users
-    getAllUsers: builder.query({
-      query: () => ({
-        url: "get-users",
-        method: "GET",
-        credentials: "include" as const,
-      }),
-    }),
-    // delete user 
-    deleteUser: builder.mutation({
-      query: (id) => ({
-        url: `/delete-user-request/${id}`,
-        method:"DELETE",
-        credentials: "include" as const,
-        }),
-        }),
   }),
+
+  overrideExisting: true,
 });
 
 export const {
+  useUpdateProfileMutation,
   useUpdateAvatarMutation,
-  useEditProfileMutation,
   useUpdatePasswordMutation,
-  useGetAllUsersQuery,
-  useDeleteUserMutation
 } = userApi;

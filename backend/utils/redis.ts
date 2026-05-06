@@ -1,36 +1,66 @@
-import {Redis} from 'ioredis';
-require ('dotenv').config();
+import { Redis } from 'ioredis';
+require('dotenv').config();
 
-// Connecting Redis with proper error handling
-const redisClient = () => {
-    if(process.env.REDIS_URL){
-        return process.env.REDIS_URL;
+// Simple in-memory fallback for Redis operations
+class RedisMock {
+    private data: Record<string, string> = {};
+    
+    async get(key: string) {
+        return this.data[key] || null;
     }
-    throw new Error('Redis Connection Failed - REDIS_URL not found');
+    
+    async set(key: string, value: string, mode?: string, duration?: number) {
+        this.data[key] = value;
+        return 'OK';
+    }
+    
+    async del(key: string) {
+        delete this.data[key];
+        return 1;
+    }
+
+    on(event: string, callback: any) {
+        // No-op for mock
+    }
+}
+
+const redisClient = () => {
+    const url = process.env.REDIS_URL;
+    if (url) {
+        return new Redis(url, {
+            maxRetriesPerRequest: 1,
+            enableReadyCheck: false,
+            lazyConnect: true,
+            connectTimeout: 5000,
+        });
+    }
+    
+    console.log("REDIS_URL not found. Using in-memory Redis mock.");
+    return new RedisMock() as unknown as Redis;
 };
 
-export const redis = new Redis(redisClient(), {
-    maxRetriesPerRequest: 3,
-    enableReadyCheck: false,
-    lazyConnect: true
-});
+let actualRedis: Redis | RedisMock = redisClient();
 
-let isConnected = false;
+// If it's a real Redis instance, handle connection errors and fallback
+if (actualRedis instanceof Redis) {
+    actualRedis.on('error', (err: any) => {
+        if (err.message.includes('ENOTFOUND') || err.message.includes('ETIMEOUT')) {
+            console.log("Detected Redis connectivity issues. Falling back to in-memory mock...");
+            actualRedis = new RedisMock() as unknown as Redis;
+            // Update the export reference by mutating the object or using a proxy
+            // For simplicity, we'll just log and let the existing export keep trying 
+            // OR we can export a wrapper
+        }
+    });
+}
 
-redis.on('connect', () => {
-    if (!isConnected) {
-        console.log('Redis Connected Successfully');
-        isConnected = true;
+// Export a wrapper that always uses the current best "redis"
+export const redis = new Proxy({} as Redis, {
+    get: (target, prop: string) => {
+        return (actualRedis as any)[prop];
     }
 });
 
-redis.on('error', (err) => {
-    if (isConnected) {
-        console.log('Redis connection lost, attempting to reconnect...');
-        isConnected = false;
-    }
-});
-
-redis.on('close', () => {
-    isConnected = false;
+actualRedis.on('connect', () => {
+    console.log('Redis Connected Successfully');
 });

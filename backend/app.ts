@@ -17,10 +17,22 @@ app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 
 // cors => cross origin resource sharing ( just like whitelisting Api)
+const allowedOrigins = [
+  process.env.ORIGIN,
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: ['http://localhost:3000'],
-    credentials:true,
+    origin: function (origin: any, callback: any) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
+    credentials: true,
   })
 );
 

@@ -1,15 +1,21 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiSlice } from "../api/apiSlice";
 
 export const ordersApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getAllOrders: builder.query({
-      query: (tyoe) => ({
-        url: `get-orders`,
-        method: "GET",
+    createOrder: builder.mutation({
+      query: (data: { courseId: string; payment_info?: any }) => ({
+        url: "create-order",
+        method: "POST",
+        body: data,
         credentials: "include" as const,
       }),
+
+      invalidatesTags: ["User", "Courses", "Course"],
     }),
   }),
+
+  overrideExisting: true,
 });
-export const { useGetAllOrdersQuery } = ordersApi;
+
+export const { useCreateOrderMutation } = ordersApi;

@@ -1,19 +1,34 @@
+"use client";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { redirect } from "next/navigation";
-import userAuth from "./userAuth";
-import React from "react";
+import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import Loader from "../components/Loader/Loader";
 
 interface ProtectedProps {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function TeacherProtected({ children }: ProtectedProps) {
-    const { user } = useSelector((state: any) => state.auth);
-    // if user is logged in then true otherwise false    
-    if (user) {
-        const isteacher = user?.role === "teacher";
-        return isteacher ? children : redirect("/");
+  const router = useRouter();
+  const { user, authChecked } = useSelector((state: any) => state.auth);
+
+  const isTeacher = user?.role === "teacher";
+
+  useEffect(() => {
+    if (authChecked && (!user || !isTeacher)) {
+      router.replace("/");
     }
+  }, [authChecked, user, isTeacher, router]);
+
+  if (!authChecked) {
+    return <Loader />;
+  }
+
+  if (!user || !isTeacher) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

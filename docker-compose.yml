@@ -1,23 +1,29 @@
 services:
   mongo:
     image: mongo:7
-    container_name: project_mongo
+    container_name: lms_mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - lms_mongo_data:/data/db
+    networks:
+      - lms_network
 
   redis:
     image: redis:7-alpine
-    container_name: project_redis
+    container_name: lms_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
+    networks:
+      - lms_network
 
   backend:
-    build: ./backend
-    container_name: project_backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lms_backend
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -26,13 +32,17 @@ services:
     depends_on:
       - mongo
       - redis
+    networks:
+      - lms_network
     volumes:
       - ./backend:/app
       - /app/node_modules
 
   frontend:
-    build: ./frontend
-    container_name: project_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lms_frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -40,10 +50,16 @@ services:
       - ./frontend/.env.docker
     depends_on:
       - backend
+    networks:
+      - lms_network
     volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
 
 volumes:
-  mongo_data:
+  lms_mongo_data:
+
+networks:
+  lms_network:
+    driver: bridge

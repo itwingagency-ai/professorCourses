@@ -1,20 +1,34 @@
+"use client";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { redirect } from "next/navigation";
-import userAuth from "./userAuth";
-import React from "react";
+import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import Loader from "../components/Loader/Loader";
 
 interface ProtectedProps {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function AdminProtected({ children }: ProtectedProps) {
-    const { user } = useSelector((state: any) => state.auth);
-    // if user is logged in then true otherwise false
+  const router = useRouter();
+  const { user, authChecked } = useSelector((state: any) => state.auth);
 
-    if (user) {
-        const isAdmin = user?.role === "admin";
-        return isAdmin ? children : redirect("/");
+  const isAdmin = user?.role === "admin";
+
+  useEffect(() => {
+    if (authChecked && (!user || !isAdmin)) {
+      router.replace("/");
     }
+  }, [authChecked, user, isAdmin, router]);
+
+  if (!authChecked) {
+    return <Loader />;
+  }
+
+  if (!user || !isAdmin) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { apiSlice } from "../api/apiSlice";
+
 export const courseApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     createCourse: builder.mutation({
@@ -9,42 +10,112 @@ export const courseApi = apiSlice.injectEndpoints({
         body: data,
         credentials: "include" as const,
       }),
+      invalidatesTags: ["Courses"],
     }),
 
-    // get all courses
     getAllCourses: builder.query({
       query: () => ({
         url: "get-courses",
         method: "GET",
         credentials: "include" as const,
       }),
+      providesTags: ["Courses"],
     }),
-    // delete course
+
+    getSingleCourse: builder.query({
+      query: (id) => ({
+        url: `get-course/${id}`,
+        method: "GET",
+        credentials: "include" as const,
+      }),
+      providesTags: (_result, _error, id) => [{ type: "Course", id }],
+    }),
+
+    getCourseContent: builder.query({
+      query: (id) => ({
+        url: `get-course-content/${id}`,
+        method: "GET",
+        credentials: "include" as const,
+      }),
+      providesTags: (_result, _error, id) => [{ type: "Course", id }],
+    }),
+
     deleteCourse: builder.mutation({
       query: (id) => ({
-        url: `/delete-course/${id}`,
+        url: `delete-course/${id}`,
         method: "DELETE",
         credentials: "include" as const,
       }),
+      invalidatesTags: ["Courses"],
     }),
-    // get all courses
+
     getAdminAllCourses: builder.query({
       query: () => ({
         url: "get-admin-courses",
         method: "GET",
         credentials: "include" as const,
       }),
+      providesTags: ["Courses"],
     }),
-    // edit courses
+
     editCourse: builder.mutation({
-      query: ({id, data}) => ({
+      query: ({ id, data }) => ({
         url: `edit-course/${id}`,
         method: "PUT",
-        body: data,// pass the data to be updated
+        body: data,
         credentials: "include" as const,
       }),
+      invalidatesTags: ["Courses"],
+    }),
+
+    addQuestion: builder.mutation({
+      query: (data: {
+        question: string;
+        courseId: string;
+        contentId: string;
+      }) => ({
+        url: "add-question",
+        method: "PUT",
+        body: data,
+        credentials: "include" as const,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Course", id: arg.courseId },
+      ],
+    }),
+
+    addReview: builder.mutation({
+      query: (data: {
+        courseId: string;
+        review: string;
+        rating: number;
+      }) => ({
+        url: `add-review/${data.courseId}`,
+        method: "PUT",
+        body: {
+          review: data.review,
+          rating: data.rating,
+        },
+        credentials: "include" as const,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Course", id: arg.courseId },
+        "Courses",
+      ],
     }),
   }),
+
+  overrideExisting: true,
 });
 
-export const { useCreateCourseMutation, useGetAllCoursesQuery, useDeleteCourseMutation, useGetAdminAllCoursesQuery, useEditCourseMutation } = courseApi;
+export const {
+  useCreateCourseMutation,
+  useGetAllCoursesQuery,
+  useGetSingleCourseQuery,
+  useGetCourseContentQuery,
+  useAddQuestionMutation,
+  useAddReviewMutation,
+  useDeleteCourseMutation,
+  useGetAdminAllCoursesQuery,
+  useEditCourseMutation,
+} = courseApi;

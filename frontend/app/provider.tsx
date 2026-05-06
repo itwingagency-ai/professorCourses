@@ -1,20 +1,33 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// Disables the ESLint rule for unused variables
+"use client";
 
-// Import React and Provider from react-redux to make Redux store accessible
 import React from "react";
-import { Provider } from "react-redux";
-
-// Import the configured Redux store
+import { Provider, useSelector } from "react-redux";
 import { store } from "../redux/store";
+import { useLoadUserQuery } from "@/redux/features/api/apiSlice";
+import Loader from "./components/Loader/Loader";
 
-// Define a TypeScript interface for component props
 interface ProviderProps {
-    children: React.ReactNode;  // Accepts any valid React nodes as children
+  children: React.ReactNode;
 }
 
-// Define the Providers component, a wrapper for the Redux Provider
-export function Providers ({ children }: ProviderProps) {
-    // Render the Redux Provider with the store and wrap all child components
-    return <Provider store={store}>{children}</Provider>;
+const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
+  const { authChecked } = useSelector((state: any) => state.auth);
+
+  const { isLoading } = useLoadUserQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  if (!authChecked && isLoading) {
+    return <Loader />;
+  }
+
+  return <>{children}</>;
+};
+
+export function Providers({ children }: ProviderProps) {
+  return (
+    <Provider store={store}>
+      <AuthInitializer>{children}</AuthInitializer>
+    </Provider>
+  );
 }

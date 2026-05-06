@@ -1,121 +1,102 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-empty-object-type */
+"use client";
 
-import Image from 'next/image';
-import React, { FC } from 'react';
-import avatarDefault from "../../../public/assests/avatar.png";
-import { RiAwardLine, RiLockPasswordLine } from 'react-icons/ri';
-import { SiCoursera } from 'react-icons/si';
-import { AiOutlineLogout } from 'react-icons/ai';
-import { MdOutlineAdminPanelSettings } from 'react-icons/md';
-import Link from 'next/link';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { FC } from "react";
+import Image from "next/image";
+import avatarIcon from "../../../public/assests/avatar.png";
+import {
+  AiOutlineUser,
+  AiOutlineBook,
+  AiOutlineLock,
+  AiOutlineLogout,
+} from "react-icons/ai";
 
 type Props = {
-    user: any;
-    active: number;
-    avatar: string | null;
-    setActive: (active: number) => void;
-    logOutHandler: () => void; // more specific type for clarity
+  user: any;
+  active: number;
+  avatar: any;
+  setActive: (active: number) => void;
+  logOutHandler: () => void;
 };
 
-const SideBarProfile: FC<Props> = ({ user, active, avatar, setActive, logOutHandler }) => {
-    // Helper function to conditionally apply active styles
-    const activeStyle = "border bg-[#e6f5f2] dark:bg-slate-800 dark:border-[#ffffff1d] border-[#00000014] rounded-[5px]";
+const SideBarProfile: FC<Props> = ({
+  user,
+  active,
+  avatar,
+  setActive,
+  logOutHandler,
+}) => {
+  const userAvatar = avatar || user?.avatar?.url || avatarIcon;
 
-    return (
-        <div className="w-full space-y-2">
-            {/* My Account Section */}
-            <div
-                className={`w-full flex items-center px-3 py-4 cursor-pointer ${active === 1 ? activeStyle : ""}`}
-                onClick={() => setActive(1)}
-            >
-                <Image
-                    className="w-[20px] h-[20px] 800px:w-[30px] 800px:h-[30px] rounded-full"
-                    src={user.avatar || avatar ? user.avatar.url : avatarDefault}
-                    alt=""
-                    width={20}
-                    height={20}
-                />
-                <h5 className="pl-2 hidden 800px:block font-Poppins text-black dark:text-white">
-                    My Account
-                </h5>
-            </div>
+  const itemBase =
+    "w-full flex items-center px-4 py-4 cursor-pointer transition rounded-md";
+  const itemActive = "bg-[#37a39a] text-white";
+  const itemInactive =
+    "text-black dark:text-white hover:bg-gray-100 dark:hover:bg-slate-800";
 
-            {/* Change Password Section */}
-            <div
-                className={`w-full flex items-center px-3 py-4 cursor-pointer ${active === 2 ? activeStyle : ""}`}
-                onClick={() => setActive(2)}
-            >
-                <RiLockPasswordLine className="stroke-black dark:stroke-white text-black dark:text-white" size={20} />
-                <h5 className="pl-2 hidden 800px:block font-Poppins text-black dark:text-white">
-                    Change Password
-                </h5>
-            </div>
+  return (
+    <div className="w-full h-full p-3">
+      <div className="flex 800px:flex-col items-center 800px:items-start gap-4 800px:gap-0 overflow-x-auto 800px:overflow-visible">
+        <div className="hidden 800px:flex flex-col items-center w-full py-5 border-b border-gray-200 dark:border-[#ffffff1d] mb-3">
+          <Image
+            src={userAvatar}
+            alt="profile"
+            width={70}
+            height={70}
+            className="w-[70px] h-[70px] rounded-full object-cover"
+          />
 
-            {/* Enrolled Courses Section */}
-            {
-                user && user.role === "user" && (
-                    <div
-                        className={`w-full flex items-center px-3 py-4 cursor-pointer ${active === 3 ? activeStyle : ""}`}
-                        onClick={() => setActive(3)}
-                    >
-                        <SiCoursera className="stroke-black dark:stroke-white text-black dark:text-white" size={20} />
-                        <h5 className="pl-2 hidden 800px:block font-Poppins text-black dark:text-white">
-                            Enrolled Courses
-                        </h5>
-                    </div>
-                )
-            }
-            {/* Logic for admin/teacher panel */}
-            {
-                user && user.role === "admin" && (
-                    <Link
-                        className={`w-full flex items-center px-3 py-4 cursor-pointer ${active === 6 ? activeStyle : ""}`}
-                        href={"/admin"}
-                    >
-                        <MdOutlineAdminPanelSettings className="stroke-black dark:stroke-white text-black dark:text-white" size={20} />
-                        <h5 className="pl-2 hidden 800px:block font-Poppins text-black dark:text-white">
-                            Admin Panel
-                        </h5>
-                    </Link>
-                )
-            }
-            {
-                user && user.role === "teacher" && (
-                    <Link
-                        className={`w-full flex items-center px-3 py-4 cursor-pointer ${active === 6 ? activeStyle : ""}`}
-                        href={"/teacher"}
-                    >
-                        <MdOutlineAdminPanelSettings className="stroke-black dark:stroke-white text-black dark:text-white" size={20} />
-                        <h5 className="pl-2 hidden 800px:block font-Poppins text-black dark:text-white">
-                            Teacher Admin Panel
-                        </h5>
-                    </Link>
-                )}
-            {/* Certificates Section */}
-            <div
-                className={`w-full flex items-center px-3 py-4 cursor-pointer ${active === 4 ? activeStyle : ""}`}
-                onClick={() => setActive(4)}
-            >
-                <RiAwardLine className="stroke-black dark:stroke-white text-black dark:text-white" size={20} />
-                <h5 className="pl-2 hidden 800px:block font-Poppins text-black dark:text-white">
-                    Certificates
-                </h5>
-            </div>
+          <h2 className="text-[18px] font-Poppins font-[600] text-black dark:text-white mt-3 text-center">
+            {user?.name || "User"}
+          </h2>
 
-            {/* Log Out Section */}
-            <div
-                className={`w-full flex items-center px-3 py-4 cursor-pointer ${active === 5 ? activeStyle : ""}`}
-                onClick={logOutHandler}
-            >
-                <AiOutlineLogout className="stroke-black dark:stroke-white text-black dark:text-white" size={20} />
-                <h5 className="pl-2 hidden 800px:block font-Poppins text-black dark:text-white">
-                    Log Out
-                </h5>
-            </div>
+          <p className="text-[13px] text-gray-500 dark:text-gray-300 text-center">
+            {user?.email || ""}
+          </p>
         </div>
-    );
+
+        <button
+          onClick={() => setActive(1)}
+          className={`${itemBase} ${active === 1 ? itemActive : itemInactive}`}
+        >
+          <AiOutlineUser size={22} />
+          <span className="hidden 800px:block pl-3 font-Poppins">
+            My Profile
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActive(2)}
+          className={`${itemBase} ${active === 2 ? itemActive : itemInactive}`}
+        >
+          <AiOutlineBook size={22} />
+          <span className="hidden 800px:block pl-3 font-Poppins">
+            My Courses
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActive(3)}
+          className={`${itemBase} ${active === 3 ? itemActive : itemInactive}`}
+        >
+          <AiOutlineLock size={22} />
+          <span className="hidden 800px:block pl-3 font-Poppins">
+            Change Password
+          </span>
+        </button>
+
+        <button
+          onClick={logOutHandler}
+          className={`${itemBase} ${itemInactive}`}
+        >
+          <AiOutlineLogout size={22} />
+          <span className="hidden 800px:block pl-3 font-Poppins">
+            Logout
+          </span>
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default SideBarProfile;

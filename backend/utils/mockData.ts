@@ -1,0 +1,38 @@
+export const mockCourses = [
+  {
+    _id: "654321098765432109876541",
+    name: "Full Stack Web Development",
+    description: "Learn MERN stack from scratch with real-world projects.",
+    price: 99,
+    estimatedPrice: 150,
+    thumbnail: {
+      url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1/courses/mern_stack.png",
+    },
+    tags: "MERN, React, Node, MongoDB",
+    level: "Beginner",
+    demoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    benefits: [{ title: "Master React" }, { title: "Build APIs" }],
+    prerequisites: [{ title: "Basic JS" }],
+    reviews: [],
+    ratings: 4.5,
+    purchased: 120,
+  },
+  {
+    _id: "654321098765432109876542",
+    name: "Next.js Masterclass",
+    description: "Deep dive into Next.js 14, Server Components, and App Router.",
+    price: 79,
+    estimatedPrice: 120,
+    thumbnail: {
+      url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1/courses/nextjs.png",
+    },
+    tags: "Nextjs, React, SSR",
+    level: "Intermediate",
+    demoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    benefits: [{ title: "SEO optimization" }, { title: "App Router mastery" }],
+    prerequisites: [{ title: "React Basics" }],
+    reviews: [],
+    ratings: 4.8,
+    purchased: 85,
+  },
+];
