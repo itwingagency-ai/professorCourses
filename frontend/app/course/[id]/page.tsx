@@ -12,6 +12,7 @@ import { useGetSingleCourseQuery } from "@/redux/features/courses/coursesApi";
 import { useCreateOrderMutation } from "@/redux/features/orders/ordersApi";
 import { apiSlice } from "@/redux/features/api/apiSlice";
 import { UserLoggedIn } from "@/redux/features/auth/authSlice";
+import { normalizeSingleCourseResponse } from "@/lib/normalizers";
 
 type NormalizedLesson = {
   id: string;
@@ -43,12 +44,7 @@ type NormalizedCourse = {
 const fallbackImage = "/assests/banner-img-1.png";
 
 const getCourseObject = (data: any): any => {
-  if (!data) return null;
-
-  if (data.course) return data.course;
-  if (data.data) return data.data;
-
-  return data;
+  return normalizeSingleCourseResponse(data) || data;
 };
 
 const normalizeCourse = (course: any): NormalizedCourse | null => {

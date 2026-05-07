@@ -2,14 +2,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { UserLoggedIn, UserLoggedOut } from "../auth/authSlice";
+import { API_BASE_URL } from "@/lib/apiConfig";
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: API_BASE_URL,
+  credentials: "include",
+  prepareHeaders: (headers) => {
+    headers.set("Accept", "application/json");
+    return headers;
+  },
+});
 
 export const apiSlice = createApi({
   reducerPath: "api",
 
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_SERVER_API,
-    credentials: "include",
-  }),
+  baseQuery: async (args, api, extraOptions) => {
+    const result = await rawBaseQuery(args, api, extraOptions);
+
+    if (process.env.NODE_ENV === "development") {
+      const url = typeof args === "string" ? args : args.url;
+      console.log("[RTK API]", API_BASE_URL, url, result);
+    }
+
+    return result;
+  },
 
   tagTypes: ["User", "Courses", "Course"],
 

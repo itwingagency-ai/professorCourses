@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { FC, useEffect, useState } from 'react'
 import axios from 'axios';
+import { normalizeApiUrl } from "@/lib/apiConfig";
+
 type Props = {
   videoUrl: string;
   title: string;
@@ -18,11 +20,16 @@ const CoursePlayer: FC<Props> = ({ videoUrl, title }) => {
       console.error("videoUrl is undefined or empty.");
       return;
     }
-    const apiUrl = `${process.env.NEXT_PUBLIC_SERVER_API}`;
-   
-    axios.post(apiUrl + "/getVdoCipherOpt", {
-      videoId: videoUrl,
-    })
+
+    axios.post(
+      normalizeApiUrl("getVdoCipherOpt"),
+      {
+        videoId: videoUrl,
+      },
+      {
+        withCredentials: true,
+      }
+    )
       .then((res) => {
         setVideoData(res.data);
       })

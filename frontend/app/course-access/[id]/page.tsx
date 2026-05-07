@@ -11,6 +11,7 @@ import Heading from "../../utils/Heading";
 import { useGetCourseContentQuery } from "@/redux/features/courses/coursesApi";
 import LessonQuestions from "../../components/Course/LessonQuestions";
 import CourseReview from "../../components/Course/CourseReview";
+import { normalizeSingleCourseResponse, normalizeCourseContentResponse } from "@/lib/normalizers";
 
 type NormalizedLesson = {
   id: string;
@@ -34,30 +35,11 @@ type NormalizedCourseContent = {
 const fallbackImage = "/assests/banner-img-1.png";
 
 const getCourseObject = (data: any): any => {
-  if (!data) return null;
-
-  if (data.course) return data.course;
-  if (data.data) return data.data;
-
-  return data;
+  return normalizeSingleCourseResponse(data) || data;
 };
 
 const getLessonsArray = (data: any): any[] => {
-  if (!data) return [];
-
-  if (Array.isArray(data.content)) return data.content;
-  if (Array.isArray(data.courseData)) return data.courseData;
-  if (Array.isArray(data.lessons)) return data.lessons;
-
-  if (data.course && Array.isArray(data.course.courseData)) {
-    return data.course.courseData;
-  }
-
-  if (data.data && Array.isArray(data.data.courseData)) {
-    return data.data.courseData;
-  }
-
-  return [];
+  return normalizeCourseContentResponse(data);
 };
 
 const normalizeCourseContent = (data: any, courseId: string): NormalizedCourseContent => {

@@ -7,6 +7,7 @@ import Header from "../components/Header";
 import Heading from "../utils/Heading";
 import Ratings from "../utils/Ratings";
 import { useGetAllCoursesQuery } from "@/redux/features/courses/coursesApi";
+import { normalizeCoursesResponse } from "@/lib/normalizers";
 
 type NormalizedCourse = {
   id: string;
@@ -25,14 +26,7 @@ type NormalizedCourse = {
 const fallbackImage = "/assests/banner-img-1.png";
 
 const getCourseArray = (data: any): any[] => {
-  if (!data) return [];
-
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.courses)) return data.courses;
-  if (Array.isArray(data.course)) return data.course;
-  if (Array.isArray(data.data)) return data.data;
-
-  return [];
+  return normalizeCoursesResponse(data);
 };
 
 const normalizeCourse = (course: any): NormalizedCourse => {
