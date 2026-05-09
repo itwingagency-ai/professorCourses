@@ -55,7 +55,7 @@ const SignUP: FC<Props> = ({ setRoute }) => {
   // The useEffect hook monitors the API call status:
   useEffect(() => {
     if (isSuccess) {
-      const message = `Verification email sent to ${data?.user?.email || formik.values.email}. Please check your inbox.`;
+      const message = `Verification email sent to ${formik.values.email}. Please check your inbox.`;
       toast.success(message);
       setRoute("Verification");
     }

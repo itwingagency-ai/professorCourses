@@ -10,12 +10,24 @@ export const ordersApi = apiSlice.injectEndpoints({
         body: data,
         credentials: "include" as const,
       }),
-
       invalidatesTags: ["User", "Courses", "Course"],
     }),
+    createPaymentIntent: builder.mutation({
+      query: (amount: number) => ({
+        url: "payment",
+        method: "POST",
+        body: { amount },
+      }),
+    }),
+    getAllOrders: builder.query({
+      query: () => ({
+        url: "get-orders",
+        method: "GET",
+        credentials: "include" as const,
+      }),
+    }),
   }),
-
   overrideExisting: true,
 });
 
-export const { useCreateOrderMutation } = ordersApi;
+export const { useCreateOrderMutation, useCreatePaymentIntentMutation, useGetAllOrdersQuery } = ordersApi;
