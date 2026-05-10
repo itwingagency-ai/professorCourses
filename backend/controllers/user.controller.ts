@@ -44,6 +44,16 @@ export const registrationUser = CatchAsyncError(
         email,
         password,
       };
+
+      // Direct Sign Up (Bypassing OTP)
+      await userModel.create(user);
+      
+      res.status(201).json({
+        success: true,
+        message: "Registration successful. You can now login.",
+      });
+
+      /* 
       // calling 4 digit CreateToken Function
       const activationToken = createActivationToken(user);
       const activationCode = activationToken.activationCode;
@@ -54,23 +64,29 @@ export const registrationUser = CatchAsyncError(
       );
 
       try {
-        // [BYPASS EMAIL FOR LOCAL TESTING]
-        // await sendMail({
-        //   email: user.email,
-        //   subject: "Activate your Account",
-        //   template: "activation-mail.ejs",
-        //   data,
-        // });
-        console.log(`[LOCAL TESTING] Activation code for ${user.email}: ${activationCode}`);
+        await sendMail({
+          email: user.email,
+          subject: "Activate your Account",
+          template: "activation-mail.ejs",
+          data,
+        });
+
         res.status(201).json({
           success: true,
-          messsage: `[BYPASS] Check console or this response for activation code.`,
+          message: `Please check your email: ${user.email} to activate your account.`,
           activationToken: activationToken.token,
-          activationCode: activationCode, // Send to client to easily bypass email during testing
         });
       } catch (error: any) {
-        return next(new ErrorHandler(error.message, 500));
+        console.error("Failed to send email:", error.message);
+        console.log(`[FALLBACK] Activation code for ${user.email}: ${activationCode}`);
+        
+        res.status(201).json({
+          success: true,
+          message: `Email failed. Check your server console for the activation code.`,
+          activationToken: activationToken.token,
+        });
       }
+      */
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
@@ -178,12 +194,12 @@ export const logoutUser = CatchAsyncError(
     try {
       res.cookie("access_token", "", { ...accessTokenOptions, maxAge: 1 });
       res.cookie("refresh_token", "", { ...refreshTokenOptions, maxAge: 1 });
-      
+
       const userId = req.user?._id as string;
       if (userId) {
         await redis.del(userId);
       }
-      
+
       res.status(200).json({
         success: true,
         message: "Logged Out Successfully",

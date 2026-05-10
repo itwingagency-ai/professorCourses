@@ -299,21 +299,27 @@ const CoursesPage: FC = () => {
             <section className="grid grid-cols-1 800px:grid-cols-2 1100px:grid-cols-3 gap-6">
               {filteredCourses.map((course) => (
                 <Link href={`/course/${course.id}`} key={course.id}>
-                  <article className="h-full rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 cursor-pointer">
+                  <article className="h-full rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] shadow-sm hover:shadow-xl hover:shadow-[#37a39a]/10 hover:-translate-y-2 transition duration-300 cursor-pointer flex flex-col group">
                     <div className="relative w-full h-[205px] bg-gray-100 dark:bg-slate-800 overflow-hidden">
                       <img
                         src={course.image}
                         alt={course.title}
-                        className="w-full h-full object-cover hover:scale-105 transition duration-300"
+                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                         onError={(event) => {
                           event.currentTarget.src = fallbackImage;
                         }}
                       />
 
-                      <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 rounded-full bg-[#37a39a] text-white text-[12px] font-semibold">
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <span className="px-3 py-1 rounded-full bg-[#37a39a] text-white text-[12px] font-semibold shadow-md">
                           {course.category}
                         </span>
+                        {course.purchased > 1000 && (
+                          <span className="px-3 py-1 rounded-full bg-yellow-500 text-white text-[12px] font-semibold shadow-md flex items-center gap-1">
+                            <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M381.2 150.3L524.9 171.5C536.8 173.2 546.8 181.6 550.6 193.1C554.4 204.7 551.3 217.3 542.7 225.9L438.5 328.1L463.1 474.7C465.1 486.7 460.2 498.9 450.2 506C440.3 513.1 427.2 514 416.5 508.3L288.1 439.8L159.8 508.3C149.1 514 135.9 513.1 126 506C116.1 498.9 111.1 486.7 113.2 474.7L137.8 328.1L33.58 225.9C24.97 217.3 21.91 204.7 25.69 193.1C29.46 181.6 39.43 173.2 51.42 171.5L195 150.3L259.4 17.97C264.7 6.691 275.9-.0391 288.1-.0391C300.4-.0391 311.6 6.691 316.9 17.97L381.2 150.3z"></path></svg>
+                            Popular
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -343,22 +349,24 @@ const CoursesPage: FC = () => {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between mt-5 pt-5 border-t border-gray-100 dark:border-[#ffffff1d]">
-                        <div>
-                          <span className="text-[24px] font-Poppins font-[700] text-black dark:text-white">
-                            {course.price === 0 ? "Free" : `$${course.price}`}
-                          </span>
-
-                          {course.estimatedPrice && (
-                            <span className="text-[14px] line-through text-gray-400 ml-2">
-                              ${course.estimatedPrice}
+                      <div className="mt-auto pt-5 border-t border-gray-100 dark:border-[#ffffff1d]">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-[24px] font-Poppins font-[700] text-black dark:text-white">
+                              {course.price === 0 ? "Free" : `$${course.price}`}
                             </span>
-                          )}
-                        </div>
 
-                        <span className="px-4 py-2 rounded-lg bg-[#37a39a1a] text-[#37a39a] text-[14px] font-semibold">
-                          View Details
-                        </span>
+                            {course.estimatedPrice && (
+                              <span className="text-[14px] line-through text-gray-400 ml-2">
+                                ${course.estimatedPrice}
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="px-4 py-2 rounded-lg bg-[#37a39a1a] text-[#37a39a] text-[14px] font-semibold group-hover:bg-[#37a39a] group-hover:text-white transition-colors duration-300">
+                            View Details
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </article>

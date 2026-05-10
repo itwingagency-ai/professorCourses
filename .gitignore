@@ -7,3 +7,6 @@ dist/
 build/
 .DS_Store
 *.zip
+backend/mongodb_data/
+frontend/tsconfig.tsbuildinfo
+.graphify/

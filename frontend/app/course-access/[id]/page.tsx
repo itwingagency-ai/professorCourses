@@ -12,6 +12,13 @@ import { useGetCourseContentQuery } from "@/redux/features/courses/coursesApi";
 import LessonQuestions from "../../components/Course/LessonQuestions";
 import CourseReview from "../../components/Course/CourseReview";
 import { normalizeSingleCourseResponse, normalizeCourseContentResponse } from "@/lib/normalizers";
+import StudentProgressBar from "../../components/Student/StudentProgressBar";
+import {
+  useGetStudentProgressQuery,
+  useMarkLessonCompleteMutation,
+  useSaveLastLessonMutation,
+} from "@/redux/features/student/studentApi";
+import toast from "react-hot-toast";
 
 type NormalizedLesson = {
   id: string;
@@ -120,6 +127,57 @@ const CourseAccessPage: FC = () => {
       return purchasedId?.toString() === courseId?.toString();
     });
   }, [user, courseId]);
+
+  const {
+    data: progressData,
+    refetch: refetchProgress,
+  } = useGetStudentProgressQuery(courseId, { skip: !courseId || !user });
+
+  const [markComplete, { isLoading: isMarking }] = useMarkLessonCompleteMutation();
+  const [saveLastLesson] = useSaveLastLessonMutation();
+
+  const progress = progressData?.progress;
+  const completedLessonIds = progress?.completedLessons?.map((l: any) => l.lessonId) || [];
+  const progressPercentage = progress?.progressPercentage || 0;
+
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  useEffect(() => {
+    if (progress?.lastLessonId && !initialLoadDone && lessons.length > 0) {
+      const idx = lessons.findIndex((l) => l.id === progress.lastLessonId);
+      if (idx !== -1) {
+        setActiveLessonIndex(idx);
+      }
+      setInitialLoadDone(true);
+    } else if (lessons.length > 0 && !initialLoadDone) {
+      setInitialLoadDone(true);
+    }
+  }, [progress?.lastLessonId, lessons, initialLoadDone]);
+
+  useEffect(() => {
+    if (initialLoadDone && activeLesson?.id && user) {
+      saveLastLesson({ courseId, lessonId: activeLesson.id });
+    }
+  }, [activeLesson?.id, initialLoadDone, courseId, saveLastLesson, user]);
+
+  const handleMarkComplete = async () => {
+    if (!activeLesson?.id) return;
+    try {
+      await markComplete({ courseId, lessonId: activeLesson.id }).unwrap();
+      toast.success("Lesson marked as complete!");
+      refetchProgress();
+      
+      // Auto-advance
+      if (activeLessonIndex < lessons.length - 1) {
+        setActiveLessonIndex((prev) => prev + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to mark lesson complete");
+    }
+  };
+
+  const isCurrentLessonCompleted = completedLessonIds.includes(activeLesson?.id);
 
   useEffect(() => {
     if (activeLessonIndex >= lessons.length && lessons.length > 0) {
@@ -242,13 +300,17 @@ const CourseAccessPage: FC = () => {
                       Course Lessons
                     </h2>
 
-                    <p className="text-[14px] text-gray-600 dark:text-gray-300 mt-1">
+                    <p className="text-[14px] text-gray-600 dark:text-gray-300 mt-1 mb-4">
                       {lessons.length} lesson{lessons.length === 1 ? "" : "s"}
                     </p>
+                    
+                    <StudentProgressBar percentage={progressPercentage} />
                   </div>
 
-                  <div className="space-y-3 max-h-[calc(100vh-190px)] overflow-y-auto pr-1">
-                    {lessons.map((lesson, index) => (
+                  <div className="space-y-3 max-h-[calc(100vh-230px)] overflow-y-auto pr-1">
+                    {lessons.map((lesson, index) => {
+                      const isCompleted = completedLessonIds.includes(lesson.id);
+                      return (
                       <button
                         key={lesson.id}
                         onClick={() => setActiveLessonIndex(index)}
@@ -258,10 +320,15 @@ const CourseAccessPage: FC = () => {
                             : "bg-transparent text-black dark:text-white border-gray-200 dark:border-[#ffffff1d] hover:border-[#37a39a]"
                         }`}
                       >
-                        <span className="block text-[13px] opacity-80">
-                          Lesson {index + 1}
-                          {lesson.videoLength ? ` • ${lesson.videoLength} min` : ""}
-                        </span>
+                        <div className="flex justify-between items-start">
+                          <span className="block text-[13px] opacity-80">
+                            Lesson {index + 1}
+                            {lesson.videoLength ? ` • ${lesson.videoLength} min` : ""}
+                          </span>
+                          {isCompleted && (
+                            <span className="text-green-300">✓</span>
+                          )}
+                        </div>
 
                         <span className="block font-Poppins font-[600] mt-1 line-clamp-2">
                           {lesson.title}
@@ -273,7 +340,8 @@ const CourseAccessPage: FC = () => {
                           </span>
                         )}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </aside>
 
@@ -367,17 +435,27 @@ const CourseAccessPage: FC = () => {
                           Previous
                         </button>
 
-                        <button
-                          onClick={goToNextLesson}
-                          disabled={activeLessonIndex === lessons.length - 1}
-                          className={`px-5 py-2 rounded-lg font-semibold ${
-                            activeLessonIndex === lessons.length - 1
-                              ? "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
-                              : "bg-[#37a39a] text-white"
-                          }`}
-                        >
-                          Next
-                        </button>
+                        {!isCurrentLessonCompleted ? (
+                          <button
+                            onClick={handleMarkComplete}
+                            disabled={isMarking}
+                            className={`px-5 py-2 rounded-lg font-semibold bg-[#37a39a] text-white hover:bg-[#2b857d] transition ${isMarking ? 'opacity-50' : ''}`}
+                          >
+                            {isMarking ? "Saving..." : "Mark Complete"}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={goToNextLesson}
+                            disabled={activeLessonIndex === lessons.length - 1}
+                            className={`px-5 py-2 rounded-lg font-semibold ${
+                              activeLessonIndex === lessons.length - 1
+                                ? "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
+                                : "bg-[#37a39a] text-white"
+                            }`}
+                          >
+                            Next
+                          </button>
+                        )}
                       </div>
                     </div>
 

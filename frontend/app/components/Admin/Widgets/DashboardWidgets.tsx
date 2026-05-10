@@ -6,13 +6,14 @@ import { PiUsersFourLight } from "react-icons/pi";
 import { Box, CircularProgress } from "@mui/material";
 import OrdersAnalytics from '../Analytics/OrdersAnalytics';
 import AlInvoices from "../Order/AllInvoices";
+import { useGetAdminDashboardQuery } from '@/redux/features/admin/adminApi';
+
 type Props = {
     open?: boolean;
     value?: number;
 }
 
 const CircularProgressWithLabel: FC<Props> = ({ value, open }) => {
-
     return (
         <Box sx={{ position: 'relative', display: 'inline-flex' }}>
             <CircularProgress
@@ -34,7 +35,14 @@ const CircularProgressWithLabel: FC<Props> = ({ value, open }) => {
         </Box>
     )
 }
-const DashboardWidgets: FC<Props> = ({open }) => {
+
+const DashboardWidgets: FC<Props> = ({ open }) => {
+    const { data, isLoading } = useGetAdminDashboardQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
+
+    const stats = data?.stats;
+
     return (
         <div className="mt-[35px] min-h-screen ">
             <div className=" grid grid-cols-[75%,25%]">
@@ -42,12 +50,12 @@ const DashboardWidgets: FC<Props> = ({open }) => {
                     <UserAnalytics isDashboard={true} />
                 </div>
                 <div className="pt-[80px] pr-8">
-                    <div className="w-full dark:bg-[#111C43]  bg-slate-200 rounded-sm shadow">
+                    <div className="w-full dark:bg-[#111C43] bg-slate-200 rounded-sm shadow">
                         <div className="flex justify-between items-center p-5">
                             <div className="">
                                 <BiBorderLeft className="dark:text-[#45CBA0] text-black text-[30px]" />
                                 <h5 className="pt-2 font-Poppins dark:text-[#fff] text-black text-[20px]">
-                                    120
+                                    {isLoading ? "..." : stats?.totalOrders}
                                 </h5>
                                 <h5 className="py-2 font-Poppins dark:text-[#45CBA0] text-black text-[20px] font-[400]">
                                     Sales Obtained
@@ -55,24 +63,28 @@ const DashboardWidgets: FC<Props> = ({open }) => {
                             </div>
                             <div>
                                 <CircularProgressWithLabel value={100} open={open} />
-                                <h5 className="text-center pt-4  dark:text-[#45CBA0] text-black"> +120%</h5>
+                                <h5 className="text-center pt-4 dark:text-[#45CBA0] text-black">
+                                    ${isLoading ? "..." : stats?.totalRevenue.toFixed(2)}
+                                </h5>
                             </div>
                         </div>
                     </div>
-                    < div className="w-full dark:bg-[#111C43] bg-slate-200 rounded-sm shadow my-8 ">
+                    <div className="w-full dark:bg-[#111C43] bg-slate-200 rounded-sm shadow my-8 ">
                         <div className="flex justify-between items-center p-5">
                             <div className="">
                                 <PiUsersFourLight className="dark:text-[#45CBA0] text-[#000] text-[30px]" />
                                 <h5 className="pt-2 font-Poppins dark:text-[#fff] text-[#000] text-[20px]">
-                                    450
+                                    {isLoading ? "..." : stats?.totalUsers}
                                 </h5>
                                 <h5 className="py-2 font-Poppins dark:text-[#45CBA0] text-black text-[20px] font-[400] ">
-                                    New Users
+                                    Total Users
                                 </h5>
                             </div>
                             <div>
-                            <CircularProgressWithLabel value={100} open={open} />
-                            <h5 className="text-center pt-4  dark:text-[#45CBA0] text-black"> +150%</h5>
+                                <CircularProgressWithLabel value={100} open={open} />
+                                <h5 className="text-center pt-4 dark:text-[#45CBA0] text-black">
+                                    {isLoading ? "..." : stats?.totalUsers} Users
+                                </h5>
                             </div>
                         </div>
                     </div>
@@ -84,7 +96,7 @@ const DashboardWidgets: FC<Props> = ({open }) => {
                     <OrdersAnalytics isDashboard={true} />
                 </div>
                 <div className="p-5">
-                    <h5 className="dark:text-[#fff] text-black text-[20px] font-[400] font-Poopins pb-3">
+                    <h5 className="dark:text-[#fff] text-black text-[20px] font-[400] font-Poppins pb-3">
                         Recent Transactions
                     </h5>
                     <AlInvoices isDashboard={true} />
@@ -94,4 +106,4 @@ const DashboardWidgets: FC<Props> = ({open }) => {
     )
 }
 
-export default DashboardWidgets;
+export default DashboardWidgets;

@@ -6,7 +6,7 @@
 import React, { FC, useEffect, useState } from 'react'
 import { DataGrid } from "@mui/x-data-grid";
 import { Box, Button, Modal, Typography } from "@mui/material";
-import { AiOutlineDelete } from 'react-icons/ai';
+import { AiOutlineDelete, AiOutlineEye } from 'react-icons/ai';
 import { useTheme } from "next-themes";
 import { FiEdit2 } from "react-icons/fi"
 import { useDeleteCourseMutation, useGetAllCoursesQuery } from '@/redux/features/courses/coursesApi';
@@ -85,6 +85,31 @@ const AllCourses: FC<Props> = () => {
                             </Box>
                         </Button >
                     </>
+                );
+            },
+        },
+        {
+            field: "students",
+            headerName: "Students",
+            flex: 0.2,
+            renderCell: (params: any) => {
+                return (
+                    <Link href={`/admin/courses/${params.row.id}/students`}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                height: "100%",
+                                width: "100%",
+                            }}
+                        >
+                            <AiOutlineEye
+                                className="dark:text-white text-black"
+                                size={20}
+                            />
+                        </Box>
+                    </Link>
                 );
             },
         },

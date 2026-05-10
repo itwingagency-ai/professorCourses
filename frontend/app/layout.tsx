@@ -1,11 +1,12 @@
 "use client";
 
-import { Poppins, Josefin_Sans } from "next/font/google";
+import { Poppins, Josefin_Sans, Inter, Outfit } from "next/font/google";
 import { ThemeProvider } from "./utils/theme-provider";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { Providers } from "./provider";
 import { SessionProvider } from "next-auth/react";
+import Footer from "./components/Footer";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -19,6 +20,18 @@ const Josefin = Josefin_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,12 +40,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${Josefin.variable} bg-white bg-no-repeat dark:bg-gradient-to-b dark:from-gray-900 dark:to-black duration-300 max-w-[100%]`}
+        className={`${poppins.variable} ${Josefin.variable} ${inter.variable} ${outfit.variable} bg-lightBg dark:bg-darkBg text-foreground transition-colors duration-300 ease-in-out`}
       >
         <Providers>
           <SessionProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               {children}
+              <Footer />
               <Toaster position="top-center" reverseOrder={false} />
             </ThemeProvider>
           </SessionProvider>

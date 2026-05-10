@@ -11,6 +11,9 @@ import NotificationModel from "../models/notification.model";
 import { getAllOrdersService } from "../services/order.services";
 import mongoose from "mongoose";
 import { redis } from "../utils/redis";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 const getPurchasedCourseId = (course: any): string | null => {
   if (!course) return null;
@@ -59,6 +62,17 @@ export const createOrder = CatchAsyncError(
         return next(new ErrorHandler("Invalid course ID", 400));
       }
 
+      if (payment_info && "id" in payment_info) {
+        const paymentIntentId = payment_info.id;
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          paymentIntentId as string
+        );
+
+        if (paymentIntent.status !== "succeeded") {
+          return next(new ErrorHandler("Payment not authorized!", 400));
+        }
+      }
+
       const user = await userModel.findById(req.user?._id);
 
       if (!user) {
@@ -89,8 +103,8 @@ export const createOrder = CatchAsyncError(
       }
 
       const orderData: any = {
-        courseId: course._id.toString(),
-        userId: user._id.toString(),
+        courseId: String(course._id),
+        userId: String(user._id),
         payment_info: payment_info || {
           type: "local-mock",
           status: "success",
@@ -100,7 +114,7 @@ export const createOrder = CatchAsyncError(
       const order = await OrderModel.create(orderData);
 
       user.courses.push({
-        courseId: course._id.toString(),
+        courseId: String(course._id),
         name: course.name,
         title: course.name,
         thumbnail: course.thumbnail,
@@ -112,7 +126,7 @@ export const createOrder = CatchAsyncError(
       course.purchased = course.purchased ? course.purchased + 1 : 1;
       await course.save();
 
-      await redis.set(user._id.toString(), JSON.stringify(user), "EX", 604800);
+      await redis.set(String(user._id), JSON.stringify(user), "EX", 604800);
 
       try {
         const mailData = {
@@ -121,7 +135,7 @@ export const createOrder = CatchAsyncError(
             email: user.email,
           },
           order: {
-            _id: course._id.toString().slice(0, 6),
+            _id: String(course._id).slice(0, 6),
             name: course.name,
             price: course.price,
             date: new Date().toLocaleDateString("en-US", {
@@ -185,6 +199,40 @@ export const getAllOrders = CatchAsyncError(
       getAllOrdersService(res);
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// send stripe publishble key
+export const sendStripePublishableKey = CatchAsyncError(
+  async (req: Request, res: Response) => {
+    res.status(200).json({
+      publishablekey: process.env.STRIPE_PUBLISHABLE_KEY,
+    });
+  }
+);
+
+// new payment
+export const newPayment = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const myPayment = await stripe.paymentIntents.create({
+        amount: req.body.amount,
+        currency: "USD",
+        metadata: {
+          company: "3S Consultant",
+        },
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        client_secret: myPayment.client_secret,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
     }
   }
 );

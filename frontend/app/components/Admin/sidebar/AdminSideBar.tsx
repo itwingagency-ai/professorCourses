@@ -177,6 +177,13 @@ const sidebar = () => {
                             selected={selected}
                             setSelected={setSelected}
                         />
+                        <Item
+                            title="Notifications"
+                            to="/admin/notifications"
+                            icon={<ManageHistoryIcon />}
+                            selected={selected}
+                            setSelected={setSelected}
+                        />
                         <Typography
                             variant="h5"
                             sx={{ m: "15px 0 5px 20px" }}

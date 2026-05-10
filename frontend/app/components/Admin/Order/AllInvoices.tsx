@@ -9,7 +9,8 @@ import { useGetAllCoursesQuery } from '@/redux/features/courses/coursesApi';
 import Loader from '../../Loader/Loader';
 import { useGetAllOrdersQuery } from '@/redux/features/orders/ordersApi';
 import { useGetAllUsersQuery } from '@/redux/features/user/userApi';
-import { AiOutlineMail } from 'react-icons/ai';
+import { AiOutlineMail, AiOutlineEye } from 'react-icons/ai';
+import Link from 'next/link';
 
 type Props = {
   isDashboard?: boolean;
@@ -44,15 +45,15 @@ console.log(courseData);
   }, [data, userData, courseData]);
 
   const columns: any = [
-    { field: "id", HeaderName: "ID", flex: 0.3 },
-    { field: "userName", HeaderName: "Name", flex: isDashboard ? .6 : .5 },
+    { field: "id", headerName: "ID", flex: 0.3 },
+    { field: "userName", headerName: "Name", flex: isDashboard ? .6 : .5 },
     ...(isDashboard
       ? []
       : [
-        { field: "userEmail", HeaderName: "Email", flex: 1 },
-        { field: "title", HeaderName: "Course Title", flex: 1 },
+        { field: "userEmail", headerName: "Email", flex: 1 },
+        { field: "title", headerName: "Course Title", flex: 1 },
       ]),
-    { field: "price", HeaderName: "Price", flex: 0.5 },
+    { field: "price", headerName: "Price", flex: 0.5 },
     ...(isDashboard
       ? [
         {
@@ -61,7 +62,7 @@ console.log(courseData);
       ]
       : [
         {
-          field: "",
+          field: "email",
           headerName: "Email",
           flex: 0.2,
           renderCell: (params: any) => {
@@ -69,65 +70,32 @@ console.log(courseData);
               <a href={`mailto:${params.row.userEmail}`}>
                 <AiOutlineMail
                   className=" dark:text-white text-black"
+                  size={20}
                 />
               </a>
+            );
+          },
+        },
+        {
+          field: "details",
+          headerName: "Details",
+          flex: 0.2,
+          renderCell: (params: any) => {
+            return (
+              <Link href={`/admin/invoices/${params.row.id}`}>
+                <AiOutlineEye
+                  className=" dark:text-white text-black"
+                  size={20}
+                />
+              </Link>
             );
           },
         },
       ]
     ),
   ];
-  // mock data 
-  const rows: any = [
-    {
-      id: "123456789798",
-      userName: "John Doe",
-      userEmail: "john.doe@example.com",
-      title: "3s Course",
-      price: "$100",
-      created_at: "2022-01-01",
-    },
-    {
-      id: "123456789798",
-      userName: "John Doe",
-      userEmail: "john.doe@example.com",
-      title: "3s Course",
-      price: "$100",
-      created_at: "2022-01-01",
-    },
-    {
-      id: "123456789798",
-      userName: "John Doe",
-      userEmail: "john.doe@example.com",
-      title: "3s Course",
-      price: "$100",
-      created_at: "2022-01-01",
-    },
-    {
-      id: "123456789798",
-      userName: "John Doe",
-      userEmail: "john.doe@example.com",
-      title: "3s Course",
-      price: "$100",
-      created_at: "2022-01-01",
-    },
-    {
-      id: "123456789798",
-      userName: "John Doe",
-      userEmail: "john.doe@example.com",
-      title: "3s Course",
-      price: "$100",
-      created_at: "2022-01-01",
-    },
-    {
-      id: "123456789798",
-      userName: "John Doe",
-      userEmail: "john.doe@example.com",
-      title: "3s Course",
-      price: "$100",
-      created_at: "2022-01-01",
-    },
-  ];
+
+  const rows: any = [];
 
   orderData && orderData.forEach((item: any) => {
     rows.push({
@@ -136,7 +104,7 @@ console.log(courseData);
       userEmail: item.userEmail,
       title: item.title,
       price: item.price,
-      created_at: item.created_at,
+      created_at: format(item.createdAt),
     });
   });
 

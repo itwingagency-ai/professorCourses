@@ -1,6 +1,7 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Conflict resolved
 import React, { FC, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -9,10 +10,15 @@ import Header from "../../components/Header";
 import Heading from "../../utils/Heading";
 import Ratings from "../../utils/Ratings";
 import { useGetSingleCourseQuery } from "@/redux/features/courses/coursesApi";
-import { useCreateOrderMutation } from "@/redux/features/orders/ordersApi";
+import { useCreateOrderMutation, useCreatePaymentIntentMutation } from "@/redux/features/orders/ordersApi";
 import { apiSlice } from "@/redux/features/api/apiSlice";
 import { UserLoggedIn } from "@/redux/features/auth/authSlice";
 import { normalizeSingleCourseResponse } from "@/lib/normalizers";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import CheckOutForm from "../../components/Course/CheckOutForm";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_mock_publishable");
 
 type NormalizedLesson = {
   id: string;
@@ -125,6 +131,10 @@ const CourseDetailsPage: FC = () => {
 
   const [open, setOpen] = useState(false);
   const [route, setRoute] = useState("Login");
+  
+  const [openPaymentModal, setOpenPaymentModal] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+  const [createPaymentIntent] = useCreatePaymentIntentMutation();
 
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
@@ -197,59 +207,68 @@ const CourseDetailsPage: FC = () => {
       return;
     }
 
-    try {
-      const response: any = await createOrder({
-        courseId,
-        payment_info: {
-          type: "local-mock",
-          status: "success",
-          source: "frontend-enroll-button",
-        },
-      }).unwrap();
+    if (course?.price === 0) {
+      try {
+        const response: any = await createOrder({
+          courseId,
+          payment_info: {
+            type: "local-mock",
+            status: "success",
+            source: "frontend-enroll-button",
+          },
+        }).unwrap();
 
-      if (response?.success) {
-        if (response?.alreadyPurchased) {
+        if (response?.success) {
+          if (response?.alreadyPurchased) {
+            toast.success("You are already enrolled in this course.");
+          } else {
+            toast.success(response?.message || "Course enrolled successfully.");
+          }
+
+          if (response?.user) {
+            dispatch(
+              UserLoggedIn({
+                accessToken: response?.accessToken,
+                user: response.user,
+              })
+            );
+          } else {
+            await refreshCurrentUser();
+          }
+
+          await refetch();
+          router.push(`/course-access/${courseId}`);
+          return;
+        }
+
+        toast.error(response?.message || "Enrollment failed. Please try again.");
+      } catch (error: any) {
+        const message =
+          error?.data?.message ||
+          error?.data?.error ||
+          error?.message ||
+          "Enrollment failed. Please try again.";
+
+        if (
+          message.toLowerCase().includes("already") ||
+          message.toLowerCase().includes("purchased")
+        ) {
           toast.success("You are already enrolled in this course.");
-        } else {
-          toast.success(response?.message || "Course enrolled successfully.");
-        }
-
-        if (response?.user) {
-          dispatch(
-            UserLoggedIn({
-              accessToken: response?.accessToken,
-              user: response.user,
-            })
-          );
-        } else {
           await refreshCurrentUser();
+          router.push(`/course-access/${courseId}`);
+          return;
         }
 
-        await refetch();
-
-        router.push(`/course-access/${courseId}`);
-        return;
+        toast.error(message);
       }
-
-      toast.error(response?.message || "Enrollment failed. Please try again.");
-    } catch (error: any) {
-      const message =
-        error?.data?.message ||
-        error?.data?.error ||
-        error?.message ||
-        "Enrollment failed. Please try again.";
-
-      if (
-        message.toLowerCase().includes("already") ||
-        message.toLowerCase().includes("purchased")
-      ) {
-        toast.success("You are already enrolled in this course.");
-        await refreshCurrentUser();
-        router.push(`/course-access/${courseId}`);
-        return;
+    } else {
+      try {
+        const res = await createPaymentIntent(Math.round((course?.price ?? 0) * 100)).unwrap();
+        setClientSecret(res.client_secret);
+        setOpenPaymentModal(true);
+      } catch (error) {
+        toast.error("Could not initiate payment. Please try again.");
       }
-
-      toast.error(message);
     }
   };
 
@@ -562,6 +581,30 @@ const CourseDetailsPage: FC = () => {
           </section>
         )}
       </main>
+
+      {openPaymentModal && clientSecret && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000080]">
+          <div className="bg-white dark:bg-slate-900 w-[90%] 800px:w-[500px] p-8 rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-[#ffffff1d]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[25px] font-Poppins font-[600] text-black dark:text-white">Checkout</h2>
+              <button onClick={() => setOpenPaymentModal(false)} className="text-black dark:text-white font-bold text-2xl hover:opacity-75">
+                ×
+              </button>
+            </div>
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <CheckOutForm 
+                setOpen={setOpenPaymentModal} 
+                courseId={courseId} 
+                onSuccess={async () => {
+                  await refreshCurrentUser();
+                  await refetch();
+                  router.push(`/course-access/${courseId}`);
+                }}
+              />
+            </Elements>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

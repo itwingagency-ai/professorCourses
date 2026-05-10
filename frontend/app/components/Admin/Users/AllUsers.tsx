@@ -5,8 +5,9 @@
 import React, { FC, useEffect, useState } from 'react'
 import { DataGrid } from "@mui/x-data-grid";
 import { Box, Button, Typography, Modal } from '@mui/material';
-import { AiOutlineDelete, AiOutlineMail } from 'react-icons/ai';
+import { AiOutlineDelete, AiOutlineMail, AiOutlineEye } from 'react-icons/ai';
 import { useTheme } from "next-themes";
+import Link from 'next/link';
 import Loader from '../../Loader/Loader';
 import { format } from 'timeago.js';
 import { useDeleteUserMutation, useGetAllUsersQuery } from '@/redux/features/user/userApi';
@@ -124,6 +125,31 @@ const AllUsers: FC<Props> = ({ isTeam }) => {
                             </Box>
                         </a >
                     </>
+                );
+            },
+        },
+        {
+            field: "details",
+            headerName: "View Details",
+            flex: 0.2,
+            renderCell: (params: any) => {
+                return (
+                    <Link href={`/admin/users/${params.row.id}`}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                height: "100%",
+                                width: "100%",
+                            }}
+                        >
+                            <AiOutlineEye
+                                className="dark:text-white text-black"
+                                size={20}
+                            />
+                        </Box>
+                    </Link>
                 );
             },
         },

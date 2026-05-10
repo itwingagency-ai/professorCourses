@@ -15,8 +15,15 @@ export default function Protected({ children }: ProtectedProps) {
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
-    if (authChecked && !user) {
-      router.replace("/");
+    if (authChecked) {
+      if (!user) {
+        router.replace("/");
+      } else if (user.role === "admin") {
+        router.replace("/admin");
+      } else if (user.role === "teacher") {
+        // Teacher flow not built yet, but redirecting to /teacher for now
+        router.replace("/teacher");
+      }
     }
   }, [authChecked, user, router]);
 

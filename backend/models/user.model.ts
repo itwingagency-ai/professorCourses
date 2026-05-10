@@ -5,6 +5,13 @@ import jwt from "jsonwebtoken";
 
 const emailRegexPattern: RegExp = /\S+@\S+\.\S+/;
 
+// Canonical roles. "user" is kept for backward-compatibility (treated as student).
+export type UserRole = "admin" | "student" | "teacher" | "user";
+
+/** Returns true if the role is considered a student (handles legacy "user" role). */
+export const isStudentRole = (role: string | undefined): boolean =>
+  role === "student" || role === "user";
+
 export interface IUserCourse {
   courseId: string;
   name?: string;
@@ -24,7 +31,7 @@ export interface IUser extends Document {
     public_id: string;
     url: string;
   };
-  role: string;
+  role: UserRole;
   isverified: boolean;
   courses: IUserCourse[];
   comparePassword: (password: string) => Promise<boolean>;
@@ -64,7 +71,8 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
 
     role: {
       type: String,
-      default: "user",
+      enum: ["admin", "student", "teacher", "user"], // "user" kept for backward compat
+      default: "student",
     },
 
     isverified: {

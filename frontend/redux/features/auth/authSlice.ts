@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+type UserRole = "admin" | "student" | "teacher" | "user";
+
 type AuthState = {
   token: string | null;
-  user: any | null;
+  user: { role?: UserRole; [key: string]: any } | null;
   authChecked: boolean;
 };
 

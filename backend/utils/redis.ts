@@ -30,18 +30,23 @@ const createRedisInstance = () => {
     console.log(`⏳ Attempting to connect to Redis at: ${url.includes('@') ? url.split('@').pop() : url}...`);
     try {
         const client = new Redis(url, {
-          maxRetriesPerRequest: 2,
-          connectTimeout: 10000,
+          maxRetriesPerRequest: 1,
+          connectTimeout: 5000,
+          // Stop retrying after first failure
+          retryStrategy: () => null,
+          enableOfflineQueue: false,
+          lazyConnect: true,
         });
 
-        client.on("connect", () => {
+        client.connect().then(() => {
           console.log("✅ Redis Connected Successfully");
+        }).catch(() => {
+          console.log("⚠️  Redis unavailable — switching to in-memory mock.");
+          actualRedis = new RedisMock() as unknown as Redis;
         });
 
-        client.on("error", (err: any) => {
-          console.error("❌ Redis Connection Error:", err.message);
-          // If it's a connection issue, we'll swap to mock later if needed, 
-          // but ioredis handles retries automatically.
+        client.on("error", () => {
+          // Silently handled above via connect().catch
         });
 
         return client;

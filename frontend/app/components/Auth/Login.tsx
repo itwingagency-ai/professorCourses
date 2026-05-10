@@ -16,6 +16,7 @@ import Image from 'next/image';
 import { useLoginMutation } from '@/redux/features/auth/authApi';
 import toast from 'react-hot-toast';
 import { signIn } from "next-auth/react";
+import { useRouter } from 'next/navigation';
 
 type Props = {
     setRoute: (route: string) => void;
@@ -28,6 +29,7 @@ const Schema = Yup.object().shape({
 });
 
 const Login: FC<Props> = ({ setRoute, setOpen }) => {
+    const router = useRouter();
     const [show, setShow] = useState(false);
     const [login, { isSuccess, isError, error, data, isLoading }] = useLoginMutation();
     // adjusting padding right prblem on each time model is open
@@ -62,6 +64,11 @@ const Login: FC<Props> = ({ setRoute, setOpen }) => {
         if (isSuccess) {
             toast.success("Login Successfully!");
             setOpen(false);
+            if (data?.user?.role === "student" || data?.user?.role === "user") {
+                router.push("/student/dashboard");
+            } else if (data?.user?.role === "admin") {
+                router.push("/admin");
+            }
         }
         if (error) {
             if ("data" in error) {

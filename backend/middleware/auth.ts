@@ -3,8 +3,7 @@ import { CatchAsyncError } from "./catchAsyncErrors";
 import ErrorHandler from "../utils/ErroHandler";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { redis } from "../utils/redis";
-import { request } from "http";
-import { nextTick } from "process";
+import { isStudentRole } from "../models/user.model";
 
 // Authenticated user
 export const isAuthenticated = CatchAsyncError(
@@ -33,11 +32,35 @@ export const isAuthenticated = CatchAsyncError(
 
 
 // validate user role
+// "user" is treated as "student" for backward compatibility
 export const authorizeRoles = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) =>{
-     if(!roles.includes(req.user?.role || '')){
-      return next(new ErrorHandler(`Role: ${req.user?.role} is not allowed to access this resource`, 403))
-     }
-     next();
+  return (req: Request, res: Response, next: NextFunction) => {
+    const userRole = req.user?.role || "";
+    // Normalise legacy "user" → "student" for role checks
+    const effectiveRole = userRole === "user" ? "student" : userRole;
+
+    if (!roles.includes(effectiveRole) && !roles.includes(userRole)) {
+      return next(
+        new ErrorHandler(
+          `Role: ${userRole} is not allowed to access this resource`,
+          403
+        )
+      );
+    }
+    next();
+  };
+};
+
+/**
+ * Middleware: allows any authenticated student (role === "student" | "user")
+ * Rejects admin and teacher accounts from student-only routes.
+ */
+export const authorizeStudent = (req: Request, res: Response, next: NextFunction) => {
+  const role = req.user?.role;
+  if (!isStudentRole(role)) {
+    return next(
+      new ErrorHandler("Only students can access this resource", 403)
+    );
   }
-}
+  next();
+};
