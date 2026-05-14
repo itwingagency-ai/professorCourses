@@ -17,7 +17,6 @@ import {
     MapOutlinedIcon,
     GroupsIcon,
     OndemandVideoIcon,
-    SettingsIcon,
     VideoCallIcon,
     WebIcon,
     QuizIcon,
@@ -288,19 +287,6 @@ const sidebar = () => {
                             title="Users Analytics"
                             to="/admin/users-analytics"
                             icon={<ManageHistoryIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
-                        <Typography
-                            variant="h5"
-                            sx={{ m: "15px 0 5px 20px" }}
-                            className="!text-[18px] text-black dark:text-white capitalzie !font-[400]">
-                            {!isCollapsed && "Extras"}
-                        </Typography>
-                        <Item
-                            title="Settings"
-                            to="/admin/settings"
-                            icon={<SettingsIcon />}
                             selected={selected}
                             setSelected={setSelected}
                         />

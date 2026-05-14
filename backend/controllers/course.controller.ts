@@ -471,6 +471,15 @@ interface IAddAnswerData {
 export const addAnswer = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // Only admin or teacher can answer questions
+      const userRole = req.user?.role;
+      const effectiveRole = userRole === "user" ? "student" : userRole;
+      if (effectiveRole !== "admin" && effectiveRole !== "teacher") {
+        return next(
+          new ErrorHandler("Only admin or teacher can answer questions", 403)
+        );
+      }
+
       const { answer, courseId, contentId, questionId }: IAddAnswerData =
         req.body;
       const course = await CourseModel.findById(courseId);
@@ -497,27 +506,19 @@ export const addAnswer = CatchAsyncError(
       // add this answer to our course content
       question.questionReplies.push(newAnswer);
       await course?.save();
-      // if add question and the reply to that question then we don't need to send email
-      // only send email when someone or admin reply
 
-      // logged in user id matched with question asked user id
+      // Send notification to question author
       if (req.user?._id === question.user._id) {
-        // create a notification to our admin a new question is added
         await NotificationModel.create({
           user: req.user?._id,
-          title: "New Question Reply Recieved",
-          message: `you have a new Question Reply from ${courseContent.title}`,
+          title: "New Question Reply Received",
+          message: `You have a new question reply from ${courseContent.title}`,
         });
       } else {
-        // admin or other user reply then send an email
         const data = {
           name: question.user.name,
           title: courseContent.title,
         };
-        const html = await ejs.renderFile(
-          path.join(__dirname, "../mails/question-reply.ejs"),
-          data
-        );
         try {
           await sendMail({
             email: question.user.email,
@@ -526,7 +527,7 @@ export const addAnswer = CatchAsyncError(
             data,
           });
         } catch (error: any) {
-          next(new ErrorHandler(error.message, 500));
+          console.warn("Failed to send question reply email:", error.message);
         }
       }
       res.status(200).json({

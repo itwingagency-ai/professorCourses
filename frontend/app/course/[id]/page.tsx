@@ -207,68 +207,59 @@ const CourseDetailsPage: FC = () => {
       return;
     }
 
-    if (course?.price === 0) {
-      try {
-        const response: any = await createOrder({
-          courseId,
-          payment_info: {
-            type: "local-mock",
-            status: "success",
-            source: "frontend-enroll-button",
-          },
-        }).unwrap();
+    // All courses enroll directly — no Stripe required
+    try {
+      const response: any = await createOrder({
+        courseId,
+        payment_info: {
+          type: "free-enrollment",
+          status: "success",
+          source: "direct-enrollment",
+        },
+      }).unwrap();
 
-        if (response?.success) {
-          if (response?.alreadyPurchased) {
-            toast.success("You are already enrolled in this course.");
-          } else {
-            toast.success(response?.message || "Course enrolled successfully.");
-          }
-
-          if (response?.user) {
-            dispatch(
-              UserLoggedIn({
-                accessToken: response?.accessToken,
-                user: response.user,
-              })
-            );
-          } else {
-            await refreshCurrentUser();
-          }
-
-          await refetch();
-          router.push(`/course-access/${courseId}`);
-          return;
-        }
-
-        toast.error(response?.message || "Enrollment failed. Please try again.");
-      } catch (error: any) {
-        const message =
-          error?.data?.message ||
-          error?.data?.error ||
-          error?.message ||
-          "Enrollment failed. Please try again.";
-
-        if (
-          message.toLowerCase().includes("already") ||
-          message.toLowerCase().includes("purchased")
-        ) {
+      if (response?.success) {
+        if (response?.alreadyPurchased) {
           toast.success("You are already enrolled in this course.");
-          await refreshCurrentUser();
-          router.push(`/course-access/${courseId}`);
-          return;
+        } else {
+          toast.success(response?.message || "Course enrolled successfully!");
         }
 
-        toast.error(message);
+        if (response?.user) {
+          dispatch(
+            UserLoggedIn({
+              accessToken: response?.accessToken,
+              user: response.user,
+            })
+          );
+        } else {
+          await refreshCurrentUser();
+        }
+
+        await refetch();
+        router.push(`/course-access/${courseId}`);
+        return;
       }
-    } else {
-      try {
-        const res = await createPaymentIntent(Math.round((course?.price ?? 0) * 100)).unwrap();
-        setClientSecret(res.client_secret);
-        setOpenPaymentModal(true);
-      } catch (error) {
-        toast.error("Could not initiate payment. Please try again.");
+
+      toast.error(response?.message || "Enrollment failed. Please try again.");
+    } catch (error: any) {
+      const message =
+        error?.data?.message ||
+        error?.data?.error ||
+        error?.message ||
+        "Enrollment failed. Please try again.";
+
+      if (
+        message.toLowerCase().includes("already") ||
+        message.toLowerCase().includes("purchased")
+      ) {
+        toast.success("You are already enrolled in this course.");
+        await refreshCurrentUser();
+        router.push(`/course-access/${courseId}`);
+        return;
       }
+
+      toast.error(message);
     }
   };
 

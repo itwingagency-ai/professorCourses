@@ -8,15 +8,15 @@ import CourseContent from "./CourseContent";
 import CoursePreview from "./CoursePreview";
 import toast from "react-hot-toast";
 import { useCreateCourseMutation } from "@/redux/features/courses/coursesApi";
-import { redirect } from "next/navigation";
-import {format} from "timeago.js";
+import { useRouter } from "next/navigation";
 const CreateCourse: FC = () => {
+    const router = useRouter();
     const [createCourse, { isLoading, isSuccess, error }] = useCreateCourseMutation();
     // useeffect 
     useEffect(() => {
         if (isSuccess) {
             toast.success("Course created successfully");
-            redirect("/admin/courses");
+            router.push("/admin/courses");
         }
         else if (error) {
             if ("data" in error) {
@@ -24,7 +24,7 @@ const CreateCourse: FC = () => {
                 toast.error(errorMessage.data.message);
             }
         }
-    }, [isLoading, isSuccess, error]);
+    }, [isLoading, isSuccess, error, router]);
     // state Management
     const [active, setActive] = useState(0);
     const [courseInfo, setCourseInfo] = useState({
@@ -38,7 +38,6 @@ const CreateCourse: FC = () => {
         demoUrl: "",
         thumbnail: "",
     });
-    console.log(courseInfo);
     const [benefits, setBenefits] = useState([{ title: "" }]);
     const [prerequisites, setPrerequisites] = useState([{ title: "" }]);
     const [courseContentData, setCourseContentData] = useState([{
@@ -57,8 +56,7 @@ const CreateCourse: FC = () => {
     },]);
     const [courseData, setCourseData] = useState({});
 
-    const handleSubmit = async () => {
-        // fromate everything in a single object
+    const buildCoursePayload = () => {
         const formattedBenefits = benefits.map((benefit) => ({ title: benefit.title }));
         const formattedPrerequisites = prerequisites.map((prerequisite) => ({ title: prerequisite.title }));
         const formattedCourseContentData = courseContentData.map((courseContent) => ({
@@ -73,12 +71,11 @@ const CreateCourse: FC = () => {
             })),
             suggestion: courseContent.suggestion,
         }));
-        // prepare our data object
-        const data = {
+        return {
             name: courseInfo.name,
             description: courseInfo.description,
-            price: courseInfo.price,
-            estimatedPrice: courseInfo.estimatedPrice,
+            price: Number(courseInfo.price) || 0,
+            estimatedPrice: courseInfo.estimatedPrice ? Number(courseInfo.estimatedPrice) : undefined,
             tags: courseInfo.tags,
             level: courseInfo.level,
             category: courseInfo.category,
@@ -89,13 +86,17 @@ const CreateCourse: FC = () => {
             prerequisites: formattedPrerequisites,
             courseData: formattedCourseContentData,
         };
-        // send the data to the server
+    };
+
+    const handleSubmit = async () => {
+        // Build the data object and store it for preview display, then advance to step 3
+        const data = buildCoursePayload();
         setCourseData(data);
     }
     const handleCourseCreate = async (e: any) => {
         try {
-            const data = courseData;
-            //console.log(data);
+            // Build payload fresh from current state to avoid stale closure issue
+            const data = buildCoursePayload();
             if (!isLoading) {
                 await createCourse(data);   // calling our mutation
             }

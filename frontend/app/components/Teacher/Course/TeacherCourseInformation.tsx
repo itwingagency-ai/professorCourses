@@ -145,6 +145,24 @@ const TeacherCourseInformation:FC<Props> = ({courseInfo, setCourseInfo, active, 
                     />
                 </div>
                 <br />
+                <div>
+                    <label className={`${styles.label}`} htmlFor="category">
+                        Course Category
+                    </label>
+                    <input
+                        type="text"
+                        name=""
+                        required
+                        value={courseInfo.category}
+                        onChange={(e: any) =>
+                            setCourseInfo({ ...courseInfo, category: e.target.value })
+                        }
+                        id="category"
+                        placeholder="Web Development, Data Science, etc."
+                        className={`${styles.input} border border-black dark:border-white`}
+                    />
+                </div>
+                <br />
                 <div className="w-full flex justify-between">
                     <div className=" w-[45%]" >
                         <label className={`${styles.label}`}>

@@ -27,7 +27,7 @@ export const apiSlice = createApi({
     return result;
   },
 
-  tagTypes: ["User", "Courses", "Course", "StudentProgress"],
+  tagTypes: ["User", "Courses", "Course", "StudentProgress", "Notifications"],
 
   endpoints: (builder) => ({
     refreshToken: builder.query({

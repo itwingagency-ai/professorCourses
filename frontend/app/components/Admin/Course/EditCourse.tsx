@@ -8,8 +8,7 @@ import CourseContent from "./CourseContent";
 import CoursePreview from "./CoursePreview";
 import toast from "react-hot-toast";
 import {  useEditCourseMutation, useGetAdminAllCoursesQuery } from "@/redux/features/courses/coursesApi";
-import { redirect } from "next/navigation";
-import { format } from "timeago.js";
+import { useRouter } from "next/navigation";
 
 type Props = {
     id: string;
@@ -20,12 +19,13 @@ const EditCourse: FC<Props> = ({ id }) => {
     // console.log(data);
     const editCourseData = data && data.courses.find((i: any) => i._id === id); // finding the course with the id
     // console.log(editCourseData);
+    const router = useRouter();
     const [editCourse, {isLoading: iseditLoading, isSuccess, error}] = useEditCourseMutation();
     // useeffect 
     useEffect(() => {
         if (isSuccess) {
             toast.success("Course Updated successfully");
-            redirect("/admin/courses");
+            router.push("/admin/courses");
         }
         else if (error) {
             if ("data" in error) {
@@ -33,7 +33,7 @@ const EditCourse: FC<Props> = ({ id }) => {
                 toast.error(errorMessage.data.message);
             }
         }
-    }, [ isSuccess, error]);
+    }, [ isSuccess, error, router]);
     // state Management
 
 
@@ -91,8 +91,7 @@ const EditCourse: FC<Props> = ({ id }) => {
     },]);
     const [courseData, setCourseData] = useState({});
 
-    const handleSubmit = async () => {
-        // fromate everything in a single object
+    const buildCoursePayload = () => {
         const formattedBenefits = benefits.map((benefit) => ({ title: benefit.title }));
         const formattedPrerequisites = prerequisites.map((prerequisite) => ({ title: prerequisite.title }));
         const formattedCourseContentData = courseContentData.map((courseContent) => ({
@@ -107,12 +106,11 @@ const EditCourse: FC<Props> = ({ id }) => {
             })),
             suggestion: courseContent.suggestion,
         }));
-        // prepare our data object
-        const data = {
+        return {
             name: courseInfo.name,
             description: courseInfo.description,
-            price: courseInfo.price,
-            estimatedPrice: courseInfo.estimatedPrice,
+            price: Number(courseInfo.price) || 0,
+            estimatedPrice: courseInfo.estimatedPrice ? Number(courseInfo.estimatedPrice) : undefined,
             tags: courseInfo.tags,
             level: courseInfo.level,
             category: courseInfo.category,
@@ -123,15 +121,18 @@ const EditCourse: FC<Props> = ({ id }) => {
             prerequisites: formattedPrerequisites,
             courseData: formattedCourseContentData,
         };
-        // send the data to the server
+    };
+
+    const handleSubmit = async () => {
+        // Build the data object and store it for preview display
+        const data = buildCoursePayload();
         setCourseData(data);
     }
     const handleCourseUpdate = async (e: any) => {
         try {
-            const data = courseData;
+            // Build payload fresh from current state to avoid stale closure issue
+            const data = buildCoursePayload();
             const editcourseid = editCourseData?._id;
-            // console.log(editcourseid);
-            // console.log(data);
             if (!iseditLoading) {
                  await editCourse({id:editcourseid, data});  // calling our mutation  
             }

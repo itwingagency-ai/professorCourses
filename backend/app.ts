@@ -12,6 +12,7 @@ import analyticsRouter from "./routes/analytics.route";
 import layoutRouter from "./routes/layout.route";
 import studentRouter from "./routes/student.route";
 import adminRouter from "./routes/admin.route";
+import teacherRouter from "./routes/teacher.route";
 // Body parser for using cloudinary
 app.use(express.json({ limit: "50mb" }));
 
@@ -47,6 +48,7 @@ app.use("/api/v1", analyticsRouter);
 app.use("/api/v1", layoutRouter);
 app.use("/api/v1/student", studentRouter);
 app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/teacher", teacherRouter);
 //testing Comment APi
 app.get("/test", (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({

@@ -11,6 +11,7 @@ import { useGetAllOrdersQuery } from '@/redux/features/orders/ordersApi';
 import { useGetAllUsersQuery } from '@/redux/features/user/userApi';
 import { AiOutlineMail, AiOutlineEye } from 'react-icons/ai';
 import Link from 'next/link';
+import { format } from 'timeago.js';
 
 type Props = {
   isDashboard?: boolean;

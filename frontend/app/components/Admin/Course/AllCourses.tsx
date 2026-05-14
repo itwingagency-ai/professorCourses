@@ -9,7 +9,7 @@ import { Box, Button, Modal, Typography } from "@mui/material";
 import { AiOutlineDelete, AiOutlineEye } from 'react-icons/ai';
 import { useTheme } from "next-themes";
 import { FiEdit2 } from "react-icons/fi"
-import { useDeleteCourseMutation, useGetAllCoursesQuery } from '@/redux/features/courses/coursesApi';
+import { useDeleteCourseMutation, useGetAdminAllCoursesQuery } from '@/redux/features/courses/coursesApi';
 import Loader from '../../Loader/Loader';
 import { format } from 'timeago.js';
 import toast from 'react-hot-toast';
@@ -18,7 +18,7 @@ type Props = {}
 
 const AllCourses: FC<Props> = () => {
     const { theme, setTheme } = useTheme();
-    const { isLoading, data, error, refetch } = useGetAllCoursesQuery({}, { refetchOnMountOrArgChange: true });
+    const { isLoading, data, error, refetch } = useGetAdminAllCoursesQuery({}, { refetchOnMountOrArgChange: true });
     const [open, setOpen] = useState(false);
     const [courseId, setCourseId] = useState("");
     const [deleteCourse, { isSuccess: deleteSuccess, error: deleteError }] = useDeleteCourseMutation();
@@ -117,7 +117,8 @@ const AllCourses: FC<Props> = () => {
 
     const rows: any = [];
     {
-        data && data.course.forEach((item: any) => {
+        const courses = data?.courses || data?.course || [];
+        courses.forEach((item: any) => {
             rows.push({
                 id: item._id,
                 name: item.name,

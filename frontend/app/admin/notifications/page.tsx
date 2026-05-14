@@ -1,11 +1,11 @@
 'use client';
 import React from 'react';
-import AdminSideBar from "../../../components/Admin/sidebar/AdminSideBar";
-import AdminProtected from '../../../hooks/adminProtected';
-import Heading from '../../../utils/Heading';
-import DashboardHeader from '../../../components/Admin/DashboardHeader';
+import AdminSideBar from "@/app/components/Admin/sidebar/AdminSideBar";
+import AdminProtected from '@/app/hooks/adminProtected';
+import Heading from '@/app/utils/Heading';
+import DashboardHeader from '@/app/components/Admin/DashboardHeader';
 import { useGetNotificationsQuery, useUpdateNotificationStatusMutation } from '@/redux/features/notifications/notificationsApi';
-import Loader from '../../../components/Loader/Loader';
+import Loader from '@/app/components/Loader/Loader';
 import { styles } from '@/app/styles/style';
 import { format } from 'timeago.js';
 import toast from 'react-hot-toast';

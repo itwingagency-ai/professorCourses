@@ -1,6 +1,7 @@
 import { Response } from "express";
 import userModel from "../models/user.model";
 import { redis } from "../utils/redis";
+import mongoose from "mongoose";
 
 // get User by id
 export const getUserById = async (id: string, res: Response) => {
@@ -25,9 +26,21 @@ export const getAllUsersService = async (res: Response) => {
 };
 
 // update user role Service
-export const updateUserRoleService = async (res: Response, id: string, role:string) => {
-  
-  const user = await userModel.findByIdAndUpdate(id, {role}, {new: true});
+// Also clears Redis so the stale role does not persist in sessions
+export const updateUserRoleService = async (res: Response, id: string, role: string) => {
+  const user = await userModel.findByIdAndUpdate(id, { role }, { new: true });
+
+  // Invalidate the Redis session so the user's next request gets the fresh role
+  try {
+    await redis.del(id);
+    // If user is currently logged in, also update the cached session with new role
+    if (user) {
+      await redis.set(id, JSON.stringify(user), "EX", 604800);
+    }
+  } catch (redisErr) {
+    console.warn("Redis update failed for role change:", redisErr);
+  }
+
   res.status(201).json({
     success: true,
     user,

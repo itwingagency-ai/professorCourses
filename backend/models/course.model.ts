@@ -55,6 +55,10 @@ interface ICourse extends Document {
   courseData: ICourseData[];
   ratings?: number;
   purchased?: number;
+  // Teacher ownership
+  createdBy?: mongoose.Types.ObjectId;
+  teacherId?: string;
+  status?: 'draft' | 'published';
 }
 
 // review Schema
@@ -146,6 +150,18 @@ const courseSchema = new Schema<ICourse>({
     purchased:{
         type:Number,
          default:0,
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    },
+    teacherId: {
+        type: String,
+    },
+    status: {
+        type: String,
+        enum: ['draft', 'published'],
+        default: 'published',
     },
 }, {timestamps:true});
 
