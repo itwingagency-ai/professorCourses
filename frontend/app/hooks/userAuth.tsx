@@ -4,7 +4,7 @@
 import { useSelector } from "react-redux";
 
 /** Returns true if a logged-in user exists (any role). */
-export default function userAuth(): boolean {
+export default function useUserAuth(): boolean {
   const { user } = useSelector((state: any) => state.auth);
   return Boolean(user);
 }

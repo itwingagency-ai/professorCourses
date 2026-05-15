@@ -6,11 +6,13 @@ import AdminSideBar from "../../components/Admin/sidebar/AdminSideBar";
 import CreateCourse from "../../components/Admin/Course/CreateCourse";
 import DashboardHeader from '../../../app/components/Admin/DashboardHeader';
 import Heading from '../../../app/utils/Heading';
+import AdminProtected from '../../hooks/adminProtected';
 type Props = {}
 
 const page: FC<Props> = () => {
   return (
     <div>
+      <AdminProtected>
         <Heading
           title=" The3S - Admin"
           description="Your trusted partner for digital transformation"
@@ -25,6 +27,7 @@ const page: FC<Props> = () => {
             <CreateCourse/>
           </div>
         </div>
+      </AdminProtected>
     </div>
   )
 }

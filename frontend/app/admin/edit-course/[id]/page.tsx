@@ -7,12 +7,14 @@ import AdminSideBar from "../../../components/Admin/sidebar/AdminSideBar";
 import EditCourse from "../../../components/Admin/Course/EditCourse";
 import DashboardHeader from '../../../../app/components/Admin/DashboardHeader';
 import Heading from '../../../../app/utils/Heading';
+import AdminProtected from '../../../hooks/adminProtected';
 type Props = {}
 
 const page: FC<Props> = ({params}: any) => {
     const id = params?.id;
   return (
     <div>
+      <AdminProtected>
         <Heading
           title=" The3S - Admin"
           description="Your trusted partner for digital transformation"
@@ -27,6 +29,7 @@ const page: FC<Props> = ({params}: any) => {
             <EditCourse id= {id} />
           </div>
         </div>
+      </AdminProtected>
     </div>
   )
 }

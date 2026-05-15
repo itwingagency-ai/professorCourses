@@ -4,8 +4,6 @@
 import { styles } from '@/app/styles/style';
 import { Block } from '@mui/icons-material';
 import { div } from 'framer-motion/client';
-import { url } from 'inspector';
-import { title } from 'process';
 import React, { FC, useState } from 'react'
 import toast from 'react-hot-toast';
 import { AiOutlineDelete, AiOutlinePlusCircle } from 'react-icons/ai';
@@ -51,7 +49,7 @@ const TeacherCourseContent: FC<Props> = ({ active, setActive, courseContentData,
     // Adds a new empty link field to a section
     const handleAddLink = (index: number) => {
         const updatedData = [...courseContentData];
-        updatedData[index].links.push({ title: "", link: "" }); // Push a new empty link object
+        updatedData[index].links.push({ title: "", url: "" }); // Push a new empty link object
         setCourseContentData(updatedData);
     };
 

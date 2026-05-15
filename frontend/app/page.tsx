@@ -12,6 +12,8 @@ import client1 from "../public/assests/client-1.jpg";
 import client2 from "../public/assests/client-2.jpg";
 import client3 from "../public/assests/client-3.jpg";
 
+import SafeCourseImage from "./components/SafeCourseImage";
+
 interface Props {}
 
 const Page: FC<Props> = (props) => {
@@ -100,7 +102,11 @@ const Page: FC<Props> = (props) => {
                 return (
                   <Link href={`/course/${course._id || course.id}`} key={index} className="group flex flex-col glass rounded-xl overflow-hidden hover:-translate-y-2 transition duration-300 hover:shadow-xl hover:shadow-primary/10">
                     <div className="relative h-48 w-full overflow-hidden">
-                      <img src={thumbnail} alt={course.name || course.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <SafeCourseImage 
+                        src={thumbnail} 
+                        alt={course.name || course.title} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                      />
                       <div className="absolute top-3 left-3 bg-primary text-white text-xs font-semibold px-2 py-1 rounded-full">
                         {course.category || "General"}
                       </div>

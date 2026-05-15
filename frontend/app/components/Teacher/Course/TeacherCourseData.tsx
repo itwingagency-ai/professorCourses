@@ -41,7 +41,7 @@ const TeacherCourseData: FC<Props> = ({ benefits, setBenefits, active, setActive
         setActive(active - 1);
     };
     const handleOptions = () => {
-        if (benefits[benefits.length - 1]?.title !== "" && prerequisites[benefits.length - 1]?.title !== "") {
+        if (benefits[benefits.length - 1]?.title !== "" && prerequisites[prerequisites.length - 1]?.title !== "") {
             setActive(active + 1);
         } else {
             toast.error("please fill the fields for go to the next")

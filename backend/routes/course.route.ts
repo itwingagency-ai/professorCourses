@@ -42,7 +42,7 @@ courseRouter.get("/get-course-content/:id", updateAccessToken, isAuthenticated, 
 // add question in course
 courseRouter.put("/add-question",updateAccessToken, isAuthenticated, addQuestion);
 // add answer to a question
-courseRouter.put("/add-answer",updateAccessToken, isAuthenticated, addAnswer);
+courseRouter.put("/add-answer",updateAccessToken, isAuthenticated, authorizeRoles("admin"), addAnswer);
 // add review to a course
 courseRouter.put("/add-review/:id", updateAccessToken, isAuthenticated, addReview);
 // add reply to a review

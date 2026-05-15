@@ -29,7 +29,7 @@ const StudentQuestionsList: FC<Props> = ({ questions }) => {
                 Course: {q.courseName}
               </h3>
               <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
-                Lesson: {q.lessonTitle} â€¢ {format(q.createdAt)}
+                Lesson: {q.lessonTitle} • {format(q.createdAt)}
               </p>
             </div>
             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
@@ -47,7 +47,11 @@ const StudentQuestionsList: FC<Props> = ({ questions }) => {
                 <div key={rIndex} className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg border border-gray-100 dark:border-[#ffffff1d]">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-[12px] font-semibold text-[#37a39a]">
-                      {reply.user?.role === "admin" ? "Instructor" : "Student"}
+                      {reply.user?.role === "admin"
+                        ? "Admin/Instructor"
+                        : reply.user?.role === "teacher"
+                        ? "Teacher/Instructor"
+                        : "Student"}
                     </span>
                     <span className="text-[11px] text-gray-500">{format(reply.createdAt)}</span>
                   </div>

@@ -25,6 +25,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Box, IconButton, Typography } from "@mui/material";
+import { useLogOutMutation } from "@/redux/features/auth/authApi";
+import { signOut } from "next-auth/react";
 
 interface itemProps {
     title: string;
@@ -36,19 +38,21 @@ interface itemProps {
 
 const Item: FC<itemProps> = ({ title, to, icon, selected, setSelected }) => {
     return (
-        <MenuItem
-            active={selected === title}
-            onClick={() => setSelected(title)}
-            icon={icon}
-        >
-            <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
-            <Link href={to} />
-        </MenuItem>
+        <Link href={to} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <MenuItem
+                active={selected === title}
+                onClick={() => setSelected(title)}
+                icon={icon}
+            >
+                <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
+            </MenuItem>
+        </Link>
     );
 };
 
 const TeacherSideBar = () => {
     const { user } = useSelector((state: any) => state.auth);
+    const [logoutApi] = useLogOutMutation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [selected, setSelected] = useState("Dashboard");
     const [mounted, setMounted] = useState(false);
@@ -58,6 +62,12 @@ const TeacherSideBar = () => {
     if (!mounted) {
         return null;
     }
+
+    const logoutHandler = async () => {
+        await logoutApi({}).unwrap().catch(() => {});
+        await signOut({ redirect: false });
+        window.location.reload();
+    };
 
     return (
         <Box
@@ -228,13 +238,15 @@ const TeacherSideBar = () => {
                             setSelected={setSelected}
                         />
 
-                        <Item
-                            title="Logout"
-                            to="/"
-                            icon={<ExitToAppIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
+                        <div onClick={logoutHandler}>
+                            <Item
+                                title="Logout"
+                                to="/"
+                                icon={<ExitToAppIcon />}
+                                selected={selected}
+                                setSelected={setSelected}
+                            />
+                        </div>
                     </Box>
                 </Menu>
             </ProSidebar>

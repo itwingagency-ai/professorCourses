@@ -6,6 +6,7 @@ import TeacherSideBar from '@/app/components/Teacher/sidebar/TeacherSideBar'
 import TeacherDashboardHeader from '@/app/components/Teacher/TeacherDashboardHeader'
 import Heading from '@/app/utils/Heading'
 import { useGetTeacherCoursesQuery, useDeleteTeacherCourseMutation } from '@/redux/features/teacher/teacherApi'
+import SafeCourseImage from '@/app/components/SafeCourseImage'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -76,12 +77,13 @@ const TeacherCoursesPage: FC<Props> = () => {
               <div className="grid grid-cols-1 800px:grid-cols-2 1200px:grid-cols-3 gap-6">
                 {courses.map((course: any) => (
                   <div key={course._id} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-[#ffffff1d] shadow-sm overflow-hidden flex flex-col">
-                    <img
-                      src={course.thumbnail?.url || '/assests/banner-img-1.png'}
-                      alt={course.name}
-                      className="w-full h-40 object-cover"
-                      onError={(e) => { e.currentTarget.src = '/assests/banner-img-1.png' }}
-                    />
+                    <div className="w-full h-40 overflow-hidden">
+                      <SafeCourseImage
+                        src={course.thumbnail?.url || course.thumbnail}
+                        alt={course.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${course.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>

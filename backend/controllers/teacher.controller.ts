@@ -123,6 +123,16 @@ export const createTeacherCourse = CatchAsyncError(
         }
       }
 
+      // Ensure courseData (lessons) use the correct link structure
+      if (Array.isArray(data.courseData)) {
+        data.courseData = data.courseData.map((cd: any) => ({
+          ...cd,
+          links: Array.isArray(cd.links) 
+            ? cd.links.map((l: any) => ({ title: l.title, url: l.url || l.link }))
+            : []
+        }));
+      }
+
       const course = await CourseModel.create(data);
       await invalidateCourseCache();
 
@@ -145,45 +155,54 @@ export const editTeacherCourse = CatchAsyncError(
       const teacherId = String(req.user?._id);
       const isAdmin = req.user?.role === "admin";
 
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return next(new ErrorHandler("Invalid course ID", 400));
-      }
-
       const courseData = await CourseModel.findById(id) as any;
       if (!courseData) {
         return next(new ErrorHandler("Course not found", 404));
       }
 
-      // Ownership check (admin can edit any course)
-      if (!isAdmin && courseData.teacherId !== teacherId) {
+      // Ownership check is already handled by middleware, but we keep it as a fallback
+      if (!isAdmin && String(courseData.createdBy || courseData.teacherId) !== teacherId) {
         return next(new ErrorHandler("You can only edit your own courses", 403));
       }
 
-      const data = req.body;
-      const thumbnail = data.thumbnail;
+      const rawData = req.body;
+      
+      // Sanitize data: only allow safe fields
+      const data: any = {};
+      const allowedFields = [
+        "name", "description", "category", "price", "estimatedPrice", 
+        "tags", "level", "demoUrl", "benefits", "prerequisites", 
+        "courseData", "thumbnail", "status"
+      ];
 
-      if (thumbnail && typeof thumbnail === "object" && thumbnail.url && thumbnail.public_id) {
-        data.thumbnail = thumbnail;
-      } else if (thumbnail && typeof thumbnail === "string" && !thumbnail.startsWith("https")) {
+      allowedFields.forEach(field => {
+        if (rawData[field] !== undefined) {
+          data[field] = rawData[field];
+        }
+      });
+
+      // Handle thumbnail upload
+      const thumbnail = data.thumbnail;
+      if (thumbnail && typeof thumbnail === "string" && !thumbnail.startsWith("https")) {
         if (process.env.CLOUD_NAME && process.env.CLOUD_API_KEY && process.env.CLOUD_SECRET_KEY) {
           if (courseData.thumbnail?.public_id && courseData.thumbnail.public_id !== "placeholder") {
             await cloudinary.v2.uploader.destroy(courseData.thumbnail.public_id);
           }
           const myCloud = await cloudinary.v2.uploader.upload(thumbnail, { folder: "courses" });
           data.thumbnail = { public_id: myCloud.public_id, url: myCloud.secure_url };
-        } else {
-          data.thumbnail = courseData.thumbnail || {
-            public_id: "placeholder",
-            url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg",
-          };
         }
       } else if (thumbnail && typeof thumbnail === "string" && thumbnail.startsWith("https")) {
         data.thumbnail = { public_id: courseData?.thumbnail?.public_id || "placeholder", url: thumbnail };
-      } else {
-        data.thumbnail = courseData.thumbnail || {
-          public_id: "placeholder",
-          url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg",
-        };
+      }
+
+      // Ensure courseData (lessons) use the correct link structure
+      if (Array.isArray(data.courseData)) {
+        data.courseData = data.courseData.map((cd: any) => ({
+          ...cd,
+          links: Array.isArray(cd.links) 
+            ? cd.links.map((l: any) => ({ title: l.title, url: l.url || l.link }))
+            : []
+        }));
       }
 
       const updatedCourse = await CourseModel.findByIdAndUpdate(

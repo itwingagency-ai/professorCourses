@@ -149,7 +149,7 @@ const MyCourses: FC<Props> = ({ user }) => {
       )}
 
       <div className="mt-8">
-        <Link href="/my-courses">
+        <Link href="/student/my-courses">
           <button className="px-7 py-3 rounded-lg border border-[#37a39a] text-[#37a39a] font-semibold hover:bg-[#37a39a1a] transition">
             Open Full My Courses Page
           </button>

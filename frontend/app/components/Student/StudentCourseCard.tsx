@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { FC } from "react";
-import Image from "next/image";
+import SafeCourseImage from "../SafeCourseImage";
 import Link from "next/link";
 import StudentProgressBar from "./StudentProgressBar";
 
@@ -18,7 +18,11 @@ const StudentCourseCard: FC<Props> = ({ course, progressPercentage = 0 }) => {
   return (
     <div className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition">
       <div className="relative w-full h-[150px]">
-        <Image src={thumbnail} alt={title} fill className="object-cover" />
+        <SafeCourseImage 
+          src={thumbnail} 
+          alt={title} 
+          className="h-full w-full object-cover" 
+        />
       </div>
 
       <div className="p-4 flex flex-col flex-grow">

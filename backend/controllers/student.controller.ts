@@ -202,6 +202,14 @@ export const markLessonComplete = CatchAsyncError(
       const course = await CourseModel.findById(courseId);
       if (!course) return next(new ErrorHandler("Course not found", 404));
 
+      // NEW VALIDATION: Check if lessonId exists in courseData
+      const validLesson = course.courseData.find(
+        (lesson: any) => lesson._id.toString() === lessonId.toString()
+      );
+      if (!validLesson) {
+        return next(new ErrorHandler("Invalid lesson ID", 400));
+      }
+
       const totalLessons = course.courseData.length;
       if (totalLessons === 0) return next(new ErrorHandler("Course has no lessons", 400));
 
@@ -251,6 +259,17 @@ export const saveLastLesson = CatchAsyncError(
 
       if (!verifyEnrollment(user, courseId)) {
         return next(new ErrorHandler("You are not enrolled in this course", 403));
+      }
+
+      const course = await CourseModel.findById(courseId);
+      if (!course) return next(new ErrorHandler("Course not found", 404));
+
+      // NEW VALIDATION: Check if lessonId exists in courseData
+      const validLesson = course.courseData.find(
+        (lesson: any) => lesson._id.toString() === lessonId.toString()
+      );
+      if (!validLesson) {
+        return next(new ErrorHandler("Invalid lesson ID", 400));
       }
 
       let progress = await StudentProgressModel.findOne({

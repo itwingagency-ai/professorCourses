@@ -258,7 +258,7 @@ const CourseAccessPage: FC = () => {
                   </button>
                 </Link>
 
-                <Link href="/my-courses">
+                <Link href="/student/my-courses">
                   <button className="px-8 py-3 rounded-lg border border-gray-300 dark:border-[#ffffff1d] text-black dark:text-white font-semibold">
                     My Courses
                   </button>
@@ -281,7 +281,7 @@ const CourseAccessPage: FC = () => {
                   yet.
                 </p>
 
-                <Link href="/my-courses">
+                <Link href="/student/my-courses">
                   <button className="mt-7 px-8 py-3 rounded-lg bg-[#37a39a] text-white font-semibold">
                     Back to My Courses
                   </button>

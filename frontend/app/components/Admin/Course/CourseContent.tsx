@@ -4,8 +4,6 @@
 import { styles } from '@/app/styles/style';
 import { Block } from '@mui/icons-material';
 import { div } from 'framer-motion/client';
-import { url } from 'inspector';
-import { title } from 'process';
 import React, { FC, useState } from 'react'
 import toast from 'react-hot-toast';
 import { AiOutlineDelete, AiOutlinePlusCircle } from 'react-icons/ai';

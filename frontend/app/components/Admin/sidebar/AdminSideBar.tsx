@@ -25,12 +25,14 @@ import {
     ExitToAppIcon
 } from "./Icon";
 import avatarDefault from "../../../../public/assests/avatar.png";
-import { useSelector, UseSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Box, IconButton, Typography } from "@mui/material";
-import { Padding } from "@mui/icons-material";
+import { useLogOutMutation } from "@/redux/features/auth/authApi";
+import { signOut } from "next-auth/react";
+
 interface itemProps {
     title: string;
     to: string,
@@ -41,20 +43,21 @@ interface itemProps {
 
 const Item: FC<itemProps> = ({ title, to, icon, selected, setSelected }) => {
     return (
-        <MenuItem
-            active={selected === title}
-            onClick={() => setSelected(title)}
-            icon={icon}
-        >
-            <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
-            <Link href={to} />
-        </MenuItem>
+        <Link href={to} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <MenuItem
+                active={selected === title}
+                onClick={() => setSelected(title)}
+                icon={icon}
+            >
+                <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
+            </MenuItem>
+        </Link>
     );
 };
 
 const sidebar = () => {
     const { user } = useSelector((state: any) => state.auth);
-    const [logout, setlogout] = useState(false);
+    const [logoutApi] = useLogOutMutation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [selected, setSelected] = useState("Dashboard");
     const [mounted, setMounted] = useState(false);
@@ -64,8 +67,10 @@ const sidebar = () => {
     if (!mounted) {
         return null;
     }
-    const logoutHandler = () => {
-        setlogout(true);
+    const logoutHandler = async () => {
+        await logoutApi({}).unwrap().catch(() => {});
+        await signOut({ redirect: false });
+        window.location.reload();
     };
     return (
         <Box

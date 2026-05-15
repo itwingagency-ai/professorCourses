@@ -12,6 +12,7 @@ import {
   getTeacherQuestions,
   addTeacherAnswer,
 } from "../controllers/teacher.controller";
+import { authorizeTeacherCourse } from "../middleware/courseOwnership";
 
 const teacherRouter = express.Router();
 
@@ -28,13 +29,13 @@ teacherRouter.get("/courses", ...auth, getTeacherCourses);
 teacherRouter.post("/courses", ...auth, createTeacherCourse);
 
 // PUT  /api/v1/teacher/courses/:id
-teacherRouter.put("/courses/:id", ...auth, editTeacherCourse);
+teacherRouter.put("/courses/:id", ...auth, authorizeTeacherCourse, editTeacherCourse);
 
 // DELETE /api/v1/teacher/courses/:id
-teacherRouter.delete("/courses/:id", ...auth, deleteTeacherCourse);
+teacherRouter.delete("/courses/:id", ...auth, authorizeTeacherCourse, deleteTeacherCourse);
 
 // GET /api/v1/teacher/courses/:id/students
-teacherRouter.get("/courses/:id/students", ...auth, getTeacherCourseStudents);
+teacherRouter.get("/courses/:id/students", ...auth, authorizeTeacherCourse, getTeacherCourseStudents);
 
 // GET /api/v1/teacher/orders
 teacherRouter.get("/orders", ...auth, getTeacherOrders);
@@ -43,6 +44,6 @@ teacherRouter.get("/orders", ...auth, getTeacherOrders);
 teacherRouter.get("/questions", ...auth, getTeacherQuestions);
 
 // POST /api/v1/teacher/questions/:questionId/answer
-teacherRouter.post("/questions/:questionId/answer", ...auth, addTeacherAnswer);
+teacherRouter.post("/questions/:questionId/answer", ...auth, authorizeTeacherCourse, addTeacherAnswer);
 
 export default teacherRouter;
