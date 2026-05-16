@@ -86,7 +86,12 @@ const TeacherCoursesPage: FC<Props> = () => {
                     </div>
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${course.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          course.status === 'published' ? 'bg-green-100 text-green-700' : 
+                          course.status === 'pending' ? 'bg-blue-100 text-blue-700' :
+                          course.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
                           {course.status || 'published'}
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">{course.category}</span>
@@ -94,6 +99,12 @@ const TeacherCoursesPage: FC<Props> = () => {
                       <h3 className="text-[16px] font-Poppins font-semibold text-black dark:text-white mb-1 line-clamp-2">{course.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{course.level} • {course.purchased || 0} students</p>
                       <p className="text-[#37a39a] font-bold text-[18px] mb-4">{course.price === 0 ? 'Free' : `$${course.price}`}</p>
+                      {course.status === 'rejected' && course.rejectionReason && (
+                        <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-600 dark:text-red-400">
+                          <strong className="block mb-1">Rejection Reason:</strong>
+                          {course.rejectionReason}
+                        </div>
+                      )}
 
                       <div className="flex gap-3 mt-auto">
                         <Link href={`/teacher/edit-course/${course._id}`} className="flex-1">

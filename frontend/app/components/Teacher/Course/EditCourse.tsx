@@ -127,7 +127,6 @@ const EditCourse: FC<Props> = ({ id }) => {
             benefits: formattedBenefits,
             prerequisites: formattedPrerequisites,
             courseData: formattedCourseContentData,
-            status: "published",
         };
     };
 
@@ -150,6 +149,19 @@ const EditCourse: FC<Props> = ({ id }) => {
     return (
         <div className="w-full flex min-h-screen">
             <div className="w-[80%]">
+                {editCourseData?.status === 'rejected' && (
+                    <div className="mx-8 mt-8 mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400">
+                        <strong className="block text-lg mb-1">Course Rejected</strong>
+                        <p>{editCourseData.rejectionReason}</p>
+                        <p className="mt-2 text-sm font-semibold">Please make the necessary changes and save to resubmit for approval.</p>
+                    </div>
+                )}
+                {editCourseData?.status === 'pending' && (
+                    <div className="mx-8 mt-8 mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-600 dark:text-blue-400">
+                        <strong className="block text-lg mb-1">Course Pending Review</strong>
+                        <p className="text-sm font-semibold">This course is currently waiting for admin approval. You can still make edits, but it will remain in pending status until reviewed.</p>
+                    </div>
+                )}
                 {active === 0 && (
                     <TeacherCourseInformation
                         courseInfo={courseInfo}

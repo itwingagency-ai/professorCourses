@@ -6,9 +6,11 @@ import { normalizeApiUrl } from "@/lib/apiConfig";
 type Props = {
   videoUrl: string;
   title: string;
+  courseId: string;
+  contentId: string;
 }
 
-const CoursePlayer: FC<Props> = ({ videoUrl, title }) => {
+const CoursePlayer: FC<Props> = ({ videoUrl, title, courseId, contentId }) => {
 
   const [videoData, setVideoData] = useState({
     otp: "",
@@ -25,6 +27,8 @@ const CoursePlayer: FC<Props> = ({ videoUrl, title }) => {
       normalizeApiUrl("getVdoCipherOpt"),
       {
         videoId: videoUrl,
+        courseId,
+        contentId,
       },
       {
         withCredentials: true,

@@ -12,6 +12,7 @@ import {
   getCourseByUser,
   getSingleCourse,
   uploadCourse,
+  updateCourseStatus,
 } from "../controllers/course.controller";
 import { isAuthenticated, authorizeRoles } from "../middleware/auth";
 import { updateAccessToken } from "../controllers/user.controller";
@@ -62,8 +63,22 @@ courseRouter.get(
   getAdminAllCourses
 );
 
+// update course status -- for admin
+courseRouter.put(
+  "/admin/courses/:id/status",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  updateCourseStatus
+);
+
 // post genrate videourl
-courseRouter.post("/getVdoCipherOpt", generateVideoUrl);
+courseRouter.post(
+  "/getVdoCipherOpt",
+  updateAccessToken,
+  isAuthenticated,
+  generateVideoUrl
+);
 
 // delete course --- for admin
 courseRouter.delete(

@@ -10,7 +10,8 @@ import { useTheme } from "next-themes";
 import Link from 'next/link';
 import Loader from '../../Loader/Loader';
 import { format } from 'timeago.js';
-import { useDeleteUserMutation, useGetAllUsersQuery } from '@/redux/features/user/userApi';
+import { useDeleteUserMutation, useGetAllUsersQuery, useUpdateUserRoleMutation } from '@/redux/features/user/userApi';
+import { useSelector } from 'react-redux';
 import { styles } from '@/app/styles/style';
 import toast from 'react-hot-toast';
 type Props = {
@@ -24,12 +25,13 @@ const AllUsers: FC<Props> = ({ isTeam }) => {
     const [role, setRole] = useState("admin");
     const [open, setOpen] = useState(false);
     const [userId, setUserId] = useState("");
-    // const [updateUserRole, {error:updateError, isSuccess}] = useUpdateUserRoleMutation();
+    const { user: currentUser } = useSelector((state: any) => state.auth);
+    const [updateUserRole, { error: updateError, isSuccess }] = useUpdateUserRoleMutation();
     const { isLoading, data, error, refetch } = useGetAllUsersQuery({}, { refetchOnMountOrArgChange: true });
     const [deleteUser, { isSuccess: deleteSuccess, error: deleteError }] = useDeleteUserMutation({});
+    
     // use effect for userRoleUpdate
-    {/** 
-        useEffect(() =>{
+    useEffect(() =>{
         if(updateError){
             if("data" in updateError){
                 const errorMessage = updateError as any;
@@ -37,11 +39,11 @@ const AllUsers: FC<Props> = ({ isTeam }) => {
             }
         }
         if(isSuccess){
-        refetch();
+            refetch();
             toast.success("User role updated successfully");
             setActive(false);
         }
-    },[updateError, isSuccess]); */}
+    }, [updateError, isSuccess, refetch]);
 
     // use effect for delete user
     useEffect(() => {
@@ -73,6 +75,9 @@ const AllUsers: FC<Props> = ({ isTeam }) => {
             flex: 0.2,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             renderCell: (params: any) => {
+                if (currentUser?._id === params.row.id) {
+                    return null; // Don't show delete for yourself
+                }
                 return (
                     <>
                         <Button
@@ -153,18 +158,53 @@ const AllUsers: FC<Props> = ({ isTeam }) => {
                 );
             },
         },
+        {
+            field: "actions",
+            headerName: "Role Actions",
+            flex: 0.6,
+            renderCell: (params: any) => {
+                return (
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", height: "100%" }}>
+                        {params.row.role !== "admin" && (
+                            <button
+                                onClick={() => updateUserRole({ id: params.row.id, role: "admin" })}
+                                className="text-[10px] bg-blue-500 text-white px-2 py-1 rounded"
+                            >
+                                Make Admin
+                            </button>
+                        )}
+                        {params.row.role !== "teacher" && (
+                            <button
+                                onClick={() => updateUserRole({ id: params.row.id, role: "teacher" })}
+                                className="text-[10px] bg-green-500 text-white px-2 py-1 rounded"
+                            >
+                                Make Teacher
+                            </button>
+                        )}
+                        {params.row.role !== "student" && (
+                            <button
+                                onClick={() => updateUserRole({ id: params.row.id, role: "student" })}
+                                className="text-[10px] bg-gray-500 text-white px-2 py-1 rounded"
+                            >
+                                Make Student
+                            </button>
+                        )}
+                    </Box>
+                );
+            }
+        },
     ];
 
     const rows: any = [];
     if (isTeam) {
-        const newData = data && data.users.filter((item: any,) => item.role === "admin");
+        const newData = data && data.users.filter((item: any) => item.role === "admin" || item.role === "teacher");
         newData && newData.forEach((item: any) => {
             rows.push({
                 id: item._id,
                 name: item.name,
                 email: item.email,
                 role: item.role,
-                courses: item.courses.length,
+                courses: item.courses?.length || 0,
                 created_at: format(item.createdAt),
             });
         });
@@ -183,6 +223,15 @@ const AllUsers: FC<Props> = ({ isTeam }) => {
 const handleDelete = async () =>{
     const id = userId;
     await deleteUser(id);
+}
+
+const handleAddMember = async () => {
+    const user = data?.users.find((u: any) => u.email === email);
+    if (!user) {
+        toast.error("User not found. Please ask the user to register first.");
+        return;
+    }
+    await updateUserRole({ id: user._id, role });
 }
     return (
         <div className="mt-[120px] ml-[90px] mr-[15px]">
@@ -294,6 +343,51 @@ const handleDelete = async () =>{
                                             Delete
                                         </Button>
                                     </Box>
+                                </Box>
+                            </Modal>
+                        )}
+                        {/* Modal for adding a member */}
+                        {active && (
+                            <Modal
+                                open={active}
+                                onClose={() => setActive(false)}
+                                aria-labelledby="add-member-modal-title"
+                            >
+                                <Box
+                                    sx={{
+                                        position: "absolute",
+                                        top: "50%",
+                                        left: "50%",
+                                        transform: "translate(-50%, -50%)",
+                                        width: 400,
+                                        bgcolor: "background.paper",
+                                        boxShadow: 24,
+                                        p: 4,
+                                        borderRadius: 2,
+                                    }}
+                                    className="dark:bg-[#111C43]"
+                                >
+                                    <Typography id="add-member-modal-title" variant="h6" component="h2" className="text-black dark:text-white mb-4">
+                                        Add New Member
+                                    </Typography>
+                                    <input 
+                                        type="email"
+                                        placeholder="Enter user email"
+                                        className={`${styles.input} mb-4 text-black dark:text-white`}
+                                        value={email}
+                                        onChange={(e) => setemail(e.target.value)}
+                                    />
+                                    <select
+                                        className={`${styles.input} mb-4 text-black dark:text-white`}
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value)}
+                                    >
+                                        <option value="admin">Admin</option>
+                                        <option value="teacher">Teacher</option>
+                                    </select>
+                                    <Button variant="contained" className="w-full bg-[#57c7a3] hover:bg-[#46a88b]" onClick={handleAddMember}>
+                                        Add Member
+                                    </Button>
                                 </Box>
                             </Modal>
                         )}

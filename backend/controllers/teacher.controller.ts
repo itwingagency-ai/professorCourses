@@ -13,7 +13,11 @@ import cloudinary from "cloudinary";
 
 const invalidateCourseCache = async (courseId?: string) => {
   await redis.del("allCourses");
-  if (courseId) await redis.del(courseId);
+  await redis.del("public:publishedCourses");
+  if (courseId) {
+    await redis.del(courseId);
+    await redis.del(`public:course:${courseId}`);
+  }
 
   // Rebuild allCourses cache
   const courses = await CourseModel.find().select(
@@ -94,12 +98,57 @@ export const getTeacherCourses = CatchAsyncError(
 export const createTeacherCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = req.body;
-      const teacherId = String(req.user?._id);
+      const rawData = req.body;
+      const data: any = {};
+
+      const allowedFields = [
+        "name",
+        "description",
+        "category",
+        "price",
+        "estimatedPrice",
+        "tags",
+        "level",
+        "demoUrl",
+        "benefits",
+        "prerequisites",
+        "courseData",
+        "thumbnail",
+      ];
+
+      allowedFields.forEach((field) => {
+        if (rawData[field] !== undefined) {
+          data[field] = rawData[field];
+        }
+      });
+
+      // Validate required fields
+      if (!data.name) return next(new ErrorHandler("Name is required", 400));
+      if (!data.description) return next(new ErrorHandler("Description is required", 400));
+      if (!data.category) return next(new ErrorHandler("Category is required", 400));
+      if (data.price === undefined || typeof data.price !== "number" || data.price < 0) {
+        return next(new ErrorHandler("Price must be a number >= 0", 400));
+      }
+      if (!data.tags) return next(new ErrorHandler("Tags are required", 400));
+      if (!data.level) return next(new ErrorHandler("Level is required", 400));
+      if (!data.demoUrl) return next(new ErrorHandler("Demo URL is required", 400));
+      if (!Array.isArray(data.courseData) || data.courseData.length === 0) {
+        return next(new ErrorHandler("Course must contain at least one lesson", 400));
+      }
+
+      for (let i = 0; i < data.courseData.length; i++) {
+        const lesson = data.courseData[i];
+        if (!lesson.title || !lesson.description) {
+           return next(new ErrorHandler("Every lesson must have a title and description", 400));
+        }
+      }
 
       // Set ownership
-      data.teacherId = teacherId;
+      data.teacherId = String(req.user?._id);
       data.createdBy = req.user?._id;
+
+      // Set status
+      data.status = "pending";
 
       // Handle thumbnail
       const thumbnail = data.thumbnail;
@@ -127,8 +176,13 @@ export const createTeacherCourse = CatchAsyncError(
       if (Array.isArray(data.courseData)) {
         data.courseData = data.courseData.map((cd: any) => ({
           ...cd,
-          links: Array.isArray(cd.links) 
-            ? cd.links.map((l: any) => ({ title: l.title, url: l.url || l.link }))
+          links: Array.isArray(cd.links)
+            ? cd.links
+                .filter((l: any) => l.title || l.url || l.link)
+                .map((l: any) => ({
+                  title: l.title || "",
+                  url: l.url || l.link || "",
+                }))
             : []
         }));
       }
@@ -172,7 +226,7 @@ export const editTeacherCourse = CatchAsyncError(
       const allowedFields = [
         "name", "description", "category", "price", "estimatedPrice", 
         "tags", "level", "demoUrl", "benefits", "prerequisites", 
-        "courseData", "thumbnail", "status"
+        "courseData", "thumbnail"
       ];
 
       allowedFields.forEach(field => {
@@ -204,6 +258,9 @@ export const editTeacherCourse = CatchAsyncError(
             : []
         }));
       }
+
+      // Auto-revert status to pending when teacher edits
+      data.status = "pending";
 
       const updatedCourse = await CourseModel.findByIdAndUpdate(
         id,

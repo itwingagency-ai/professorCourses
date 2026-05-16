@@ -103,6 +103,15 @@ export const courseApi = apiSlice.injectEndpoints({
         "Courses",
       ],
     }),
+    updateCourseStatus: builder.mutation({
+      query: ({ id, status, rejectionReason }) => ({
+        url: `admin/courses/${id}/status`,
+        method: "PUT",
+        body: { status, rejectionReason },
+        credentials: "include" as const,
+      }),
+      invalidatesTags: ["Courses"],
+    }),
   }),
 
   overrideExisting: true,
@@ -118,4 +127,5 @@ export const {
   useDeleteCourseMutation,
   useGetAdminAllCoursesQuery,
   useEditCourseMutation,
+  useUpdateCourseStatusMutation,
 } = courseApi;

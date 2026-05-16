@@ -36,6 +36,8 @@ return (
         <CoursePlayer
           videoUrl={courseData?.demoUrl}
           title={courseData?.title}
+          courseId={courseData?._id || ""}
+          contentId=""
         />
       </div>
 

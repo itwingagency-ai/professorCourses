@@ -44,6 +44,8 @@ const CoursePreview: FC<Props> = ({ active, setActive, courseData, handleCourseC
           <CoursePlayer
             videoUrl={courseData?.demoUrl}
             title={courseData?.title}
+            courseId={courseData?._id || ""}
+            contentId=""
           />
         </div>
 

@@ -58,7 +58,8 @@ interface ICourse extends Document {
   // Teacher ownership
   createdBy?: mongoose.Types.ObjectId;
   teacherId?: string;
-  status?: 'draft' | 'published';
+  status?: 'draft' | 'pending' | 'published' | 'rejected';
+  rejectionReason?: string;
 }
 
 // review Schema
@@ -160,8 +161,11 @@ const courseSchema = new Schema<ICourse>({
     },
     status: {
         type: String,
-        enum: ['draft', 'published'],
-        default: 'published',
+        enum: ['draft', 'pending', 'published', 'rejected'],
+        default: 'pending',
+    },
+    rejectionReason: {
+        type: String,
     },
 }, {timestamps:true});
 

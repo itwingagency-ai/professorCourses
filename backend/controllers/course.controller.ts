@@ -93,6 +93,7 @@ export const uploadCourse = CatchAsyncError(
 
       // Invalidate the Redis cache after creating the course
       await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
 
       // Update the cache with fresh course data from MongoDB
       const courses = await CourseModel.find().select(
@@ -217,6 +218,8 @@ export const editCourse = CatchAsyncError(
 
       // Invalidate the cache
       await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(`public:course:${courseId}`);
 
       // Update Redis cache with fresh course data from MongoDB
       const courses = await CourseModel.find().select(
@@ -238,7 +241,8 @@ export const getSingleCourse = CatchAsyncError(
     try {
       // trying to get it from redis to reduce traffic from the server
       const courseId = req.params.id;
-      const isCacheExist = await redis.get(courseId);
+      const cacheKey = `public:course:${courseId}`;
+      const isCacheExist = await redis.get(cacheKey);
       if (isCacheExist) {
         const course = JSON.parse(isCacheExist);
         res.status(200).json({
@@ -246,11 +250,16 @@ export const getSingleCourse = CatchAsyncError(
           course,
         });
       } else {
-        const course = await CourseModel.findById(req.params.id).select(
+        const course = await CourseModel.findOne({ _id: courseId, status: "published" }).select(
           "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
         );
+
+        if (!course) {
+          return next(new ErrorHandler("Course not found", 404));
+        }
+
         // set this in redis cache
-        await redis.set(courseId, JSON.stringify(course), "EX", 604800); // 7 days expiray
+        await redis.set(cacheKey, JSON.stringify(course), "EX", 604800); // 7 days expiray
         res.status(200).json({
           success: true,
           course,
@@ -267,7 +276,8 @@ export const getAllCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       //  trying to get it from redis to reduce traffic from the server
-      const isCacheExist = await redis.get("allCourses");
+      const cacheKey = "public:publishedCourses";
+      const isCacheExist = await redis.get(cacheKey);
       if (isCacheExist) {
         const course = JSON.parse(isCacheExist);
        //  console.log("hitting redis");
@@ -276,11 +286,11 @@ export const getAllCourse = CatchAsyncError(
           course,
         });
       } else {
-        const course = await CourseModel.find().select(
+        const course = await CourseModel.find({ status: "published" }).select(
           "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
         );
         // set this in redis cache
-        await redis.set("allCourses", JSON.stringify(course), "EX", 604800); // 7 days expiray
+        await redis.set(cacheKey, JSON.stringify(course), "EX", 604800); // 7 days expiray
         // console.log("hitting mongodb");
         res.status(200).json({
           success: true,
@@ -712,6 +722,8 @@ export const deleteCourse = CatchAsyncError(
 
       // Invalidate the Redis cache after creating the course
       await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(`public:course:${id}`);
 
       // Update the cache with fresh course data from MongoDB
       const courses = await CourseModel.find().select(
@@ -735,12 +747,62 @@ export const deleteCourse = CatchAsyncError(
   }
 );
 
-// generate video Url
 export const generateVideoUrl = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { videoId } = req.body;
-      
+      const { videoId, courseId, contentId } = req.body;
+
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        return next(new ErrorHandler("Invalid course ID", 400));
+      }
+      if (!mongoose.Types.ObjectId.isValid(contentId)) {
+        return next(new ErrorHandler("Invalid content ID", 400));
+      }
+
+      const course = await CourseModel.findById(courseId);
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
+
+      const lesson = course.courseData?.find((item: any) =>
+        item._id.equals(contentId)
+      );
+      if (!lesson) {
+        return next(new ErrorHandler("Lesson not found", 404));
+      }
+
+      if (lesson.videoUrl !== videoId) {
+        return next(new ErrorHandler("Video ID mismatch", 403));
+      }
+
+      // Permission check
+      let hasAccess = false;
+      const userRole = req.user?.role;
+      const effectiveRole = userRole === "user" ? "student" : userRole;
+
+      if (effectiveRole === "admin") {
+        hasAccess = true;
+      } else if (effectiveRole === "teacher") {
+        if (
+          String(course.teacherId) === String(req.user?._id) ||
+          String(course.createdBy) === String(req.user?._id)
+        ) {
+          hasAccess = true;
+        }
+      } else if (effectiveRole === "student") {
+        const userCourseList = req.user?.courses;
+        if (userCourseList && userCourseList.length > 0) {
+          hasAccess = userCourseList.some((c: any) => {
+             const purchasedId = c.courseId?._id || c.courseId || c._id || c.id || c;
+             return purchasedId.toString() === courseId.toString();
+          });
+        }
+      }
+
+      if (!hasAccess) {
+        return next(new ErrorHandler("Access denied", 403));
+      }
+
       const response = await axios.post(
         `https://dev.vdocipher.com/api/videos/${videoId}/otp`,
         {
@@ -758,6 +820,58 @@ export const generateVideoUrl = CatchAsyncError(
       res.json(response.data);
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// update course status -- for admin
+export const updateCourseStatus = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { status, rejectionReason } = req.body;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorHandler("Invalid course ID", 400));
+      }
+
+      const validStatuses = ["draft", "pending", "published", "rejected"];
+      if (!validStatuses.includes(status)) {
+        return next(new ErrorHandler("Invalid status", 400));
+      }
+
+      const course = await CourseModel.findById(id);
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
+
+      course.status = status;
+      if (status === "rejected") {
+        course.rejectionReason = rejectionReason || "No reason provided.";
+      } else if (status === "published" || status === "pending" || status === "draft") {
+        course.rejectionReason = undefined; // clear rejection reason if approved or re-submitted
+      }
+
+      await course.save();
+
+      // Manage caches:
+      await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(id);
+      await redis.del(`public:course:${id}`);
+
+      // Rebuild basic internal cache
+      const courses = await CourseModel.find().select(
+        "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
+      );
+      await redis.set("allCourses", JSON.stringify(courses), "EX", 604800);
+
+      res.status(200).json({
+        success: true,
+        course,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
     }
   }
 );

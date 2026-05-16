@@ -469,11 +469,28 @@ export const getAllUsers = CatchAsyncError(
 export const updateUserRole = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id, role } = req.body;
+      let { id, role } = req.body;
       // Validate if the id is a valid ObjectId
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return next(new ErrorHandler("Invalid user ID", 400));
       }
+
+      // Normalize "user" to "student"
+      if (role === "user") {
+        role = "student";
+      }
+
+      // Validate allowed roles
+      const allowedRoles = ["admin", "teacher", "student"];
+      if (!allowedRoles.includes(role)) {
+        return next(new ErrorHandler("Invalid role", 400));
+      }
+
+      // Prevent self-demotion
+      if (String(req.user?._id) === id && role !== "admin") {
+        return next(new ErrorHandler("You cannot change your own admin role", 400));
+      }
+
       const user = await userModel.findById(id);
       if (!user) {
         return next(new ErrorHandler("User not found", 404));

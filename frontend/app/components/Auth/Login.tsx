@@ -61,25 +61,33 @@ const Login: FC<Props> = ({ setRoute, setOpen }) => {
         },
     });
     useEffect(() => {
-        if (isSuccess) {
+        if (isSuccess && data?.user) {
             toast.success("Login Successfully!");
             setOpen(false);
-            if (data?.user?.role === "student" || data?.user?.role === "user") {
+
+            const role = data.user.role === "user" ? "student" : data.user.role;
+
+            if (role === "student") {
                 router.push("/student/dashboard");
-            } else if (data?.user?.role === "admin") {
+            } else if (role === "teacher") {
+                router.push("/teacher");
+            } else if (role === "admin") {
                 router.push("/admin");
+            } else {
+                router.push("/");
             }
         }
-        if (error) {
+
+        if (isError && error) {
             if ("data" in error) {
                 const errorData = error as any;
-                toast.error(errorData.data.message);
-
+                toast.error(errorData.data?.message || "Login failed");
             } else {
-                console.log('An error occured :', error);
+                console.log("An error occurred:", error);
+                toast.error("Login failed");
             }
         }
-    }, [isSuccess, error]);
+    }, [isSuccess, isError, error, data, router, setOpen]);
 
     const { errors, touched, values, handleChange, handleSubmit } = formik;
 

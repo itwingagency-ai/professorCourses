@@ -69,6 +69,15 @@ const UserDetailPage = () => {
                                                             Make Admin
                                                         </button>
                                                     )}
+                                                    {user?.role !== "teacher" && (
+                                                        <button 
+                                                            onClick={() => handleRoleUpdate("teacher")}
+                                                            className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded disabled:opacity-50"
+                                                            disabled={roleLoading}
+                                                        >
+                                                            Make Teacher
+                                                        </button>
+                                                    )}
                                                     {user?.role !== "student" && (
                                                         <button 
                                                             onClick={() => handleRoleUpdate("student")}
