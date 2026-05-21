@@ -52,12 +52,19 @@ const SignUP: FC<Props> = ({ setRoute }) => {
       closeModal();
     };
   }, []);
-  // The useEffect hook monitors the API call status:
   useEffect(() => {
     if (isSuccess) {
-      const message = `Registration successful! Please sign in to continue.`;
+      const message = `Registration successful! Check console for OTP.`;
       toast.success(message);
-      setRoute("Login");
+      
+      // Console log the OTP returned from backend
+      if (data?.activationCode) {
+        console.log("====================================");
+        console.log("🚀 [DEV ONLY] YOUR OTP IS:", data.activationCode);
+        console.log("====================================");
+      }
+      
+      setRoute("Verification"); // Open OTP popup
     }
     if (error) {
       if ("data" in error) {
@@ -65,7 +72,7 @@ const SignUP: FC<Props> = ({ setRoute }) => {
         toast.error(errorData.data.message);
       }
     }
-  }, [isSuccess, error]);
+  }, [isSuccess, error, data]);
 
   const formik = useFormik({
     initialValues: { name: "", email: "", password: "" },

@@ -54,6 +54,10 @@ export const registrationUser = CatchAsyncError(
         data
       );
 
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[DEV] Activation code for ${user.email}: ${activationCode}`);
+      }
+
       try {
         await sendMail({
           email: user.email,
@@ -66,6 +70,7 @@ export const registrationUser = CatchAsyncError(
           success: true,
           message: `Please check your email: ${user.email} to activate your account.`,
           activationToken: activationToken.token,
+          ...(process.env.NODE_ENV !== "production" && { activationCode })
         });
       } catch (error: any) {
         console.error("Failed to send email:", error.message);
@@ -75,8 +80,9 @@ export const registrationUser = CatchAsyncError(
         
         res.status(201).json({
           success: true,
-          message: `Email failed. Check your server console for the activation code if in dev mode.`,
+          message: `Email failed. Check your browser console for the activation code.`,
           activationToken: activationToken.token,
+          ...(process.env.NODE_ENV !== "production" && { activationCode })
         });
       }
     } catch (error: any) {
@@ -92,7 +98,7 @@ interface IActivationToken {
 }
 // Create Activation Token
 export const createActivationToken = (user: any): IActivationToken => {
-  const activationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const activationCode = Math.floor(1000 + Math.random() * 9000).toString();
   const hashedCode = crypto.createHash("sha256").update(activationCode).digest("hex");
 
   const token = jwt.sign(
