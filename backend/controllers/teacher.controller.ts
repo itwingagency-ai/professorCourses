@@ -166,16 +166,16 @@ export const createTeacherCourse = CatchAsyncError(
             });
             data.thumbnail = { public_id: myCloud.public_id, url: myCloud.secure_url };
           } catch (cloudinaryErr) {
-            console.error("Cloudinary upload failed, falling back to placeholder:", cloudinaryErr);
+            console.error("Cloudinary upload failed, saving base64 directly to database:", cloudinaryErr);
             data.thumbnail = {
-              public_id: "placeholder",
-              url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg",
+              public_id: "local_base64",
+              url: thumbnail,
             };
           }
         } else {
           data.thumbnail = {
-            public_id: "placeholder",
-            url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg",
+            public_id: "local_base64",
+            url: thumbnail,
           };
         }
       }
@@ -248,11 +248,16 @@ export const editTeacherCourse = CatchAsyncError(
       const thumbnail = data.thumbnail;
       if (thumbnail && typeof thumbnail === "string" && !thumbnail.startsWith("https")) {
         if (process.env.CLOUD_NAME && process.env.CLOUD_API_KEY && process.env.CLOUD_SECRET_KEY) {
-          if (courseData.thumbnail?.public_id && courseData.thumbnail.public_id !== "placeholder") {
-            await cloudinary.v2.uploader.destroy(courseData.thumbnail.public_id);
+          try {
+            if (courseData.thumbnail?.public_id && courseData.thumbnail.public_id !== "placeholder") {
+              await cloudinary.v2.uploader.destroy(courseData.thumbnail.public_id).catch(() => {});
+            }
+            const myCloud = await cloudinary.v2.uploader.upload(thumbnail, { folder: "courses" });
+            data.thumbnail = { public_id: myCloud.public_id, url: myCloud.secure_url };
+          } catch (cloudinaryErr) {
+            console.error("Cloudinary upload failed on edit, saving base64 directly to database:", cloudinaryErr);
+            data.thumbnail = { public_id: "local_base64", url: thumbnail };
           }
-          const myCloud = await cloudinary.v2.uploader.upload(thumbnail, { folder: "courses" });
-          data.thumbnail = { public_id: myCloud.public_id, url: myCloud.secure_url };
         }
       } else if (thumbnail && typeof thumbnail === "string" && thumbnail.startsWith("https")) {
         data.thumbnail = { public_id: courseData?.thumbnail?.public_id || "placeholder", url: thumbnail };

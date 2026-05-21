@@ -384,42 +384,25 @@ const CourseAccessPage: FC = () => {
                 </div>
 
                 <main className="rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] overflow-hidden">
-                  <div className="w-full bg-black aspect-video flex items-center justify-center">
+                  <div className="w-full bg-black rounded-t-2xl overflow-hidden">
                     {activeLesson?.videoUrl ? (
-                      /^https?:\/\//i.test(activeLesson.videoUrl) && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(activeLesson.videoUrl) ? (
-                        <video
-                          src={activeLesson.videoUrl}
-                          controls
-                          className="w-full h-full"
-                        />
-                      ) : !/^https?:\/\//i.test(activeLesson.videoUrl) && activeLesson.videoUrl.length >= 8 ? (
-                        <div className="w-full h-full relative">
-                          <div className="absolute inset-0 w-full h-full">
-                             <CoursePlayer
-                                videoUrl={activeLesson.videoUrl}
-                                title={activeLesson.title}
-                                courseId={courseId}
-                                contentId={String((activeLesson as any)._id || activeLesson.id)}
-                             />
-                          </div>
-                        </div>
-                      ) : (
+                      <CoursePlayer
+                        videoUrl={activeLesson.videoUrl}
+                        title={activeLesson.title}
+                        courseId={courseId}
+                        contentId={String((activeLesson as any)._id || activeLesson.id)}
+                      />
+                    ) : (
+                      <div className="aspect-video flex items-center justify-center">
                         <div className="text-center p-8">
                           <h3 className="text-[24px] font-Poppins font-[700] text-white">
-                            Video format not supported
+                            Video not configured
                           </h3>
+                          <p className="text-gray-300 mt-2 max-w-[520px]">
+                            This lesson is available, but video URL or VdoCipher
+                            playback is not configured yet.
+                          </p>
                         </div>
-                      )
-                    ) : (
-                      <div className="text-center p-8">
-                        <h3 className="text-[24px] font-Poppins font-[700] text-white">
-                          Video not configured
-                        </h3>
-
-                        <p className="text-gray-300 mt-2 max-w-[520px]">
-                          This lesson is available, but video URL or VdoCipher
-                          playback is not configured yet.
-                        </p>
                       </div>
                     )}
                   </div>

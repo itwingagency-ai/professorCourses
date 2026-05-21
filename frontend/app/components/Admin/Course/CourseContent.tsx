@@ -148,7 +148,7 @@ const CourseContent: FC<Props> = ({
                         const showSectionInput =
                             index === 0 || item.videoSection !== courseContentData[index - 1].videoSection;
                         return (
-                            <>
+                            <React.Fragment key={index}>
                                 {/* Section container with conditional margin styling */}
                                 <div className={`w-full bg-[#3b3a3919] dark:bg-[#cdcBc819] p-4 ${showSectionInput ? "mt-8" : "mb-0"}`}>
                                     {
@@ -298,7 +298,7 @@ const CourseContent: FC<Props> = ({
 
                                             {/* Links Section */}
                                             {item?.links.map((link: any, linkindex: number) => (
-                                                <div className="mb-3 block">
+                                                <div className="mb-3 block" key={linkindex}>
                                                     <div className="w-full flex item-center justify-between">
                                                         <label className={`${styles.label}`}>
                                                             Link {linkindex + 1}
@@ -362,7 +362,7 @@ const CourseContent: FC<Props> = ({
                                         </div>
                                     )}
                                 </div>
-                            </>
+                            </React.Fragment>
                         );
                     })
                 }

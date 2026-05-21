@@ -17,6 +17,7 @@ import { normalizeSingleCourseResponse } from "@/lib/normalizers";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckOutForm from "../../components/Course/CheckOutForm";
+import CoursePlayer from "../../utils/CoursePlayer";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_mock_publishable");
 
@@ -385,10 +386,11 @@ const CourseDetailsPage: FC = () => {
 
               {course.demoUrl && (
                 <div className="mt-10 rounded-2xl overflow-hidden bg-black border border-gray-200 dark:border-[#ffffff1d]">
-                  <video
-                    src={course.demoUrl}
-                    controls
-                    className="w-full aspect-video"
+                  <CoursePlayer
+                    videoUrl={course.demoUrl}
+                    title={course.title}
+                    courseId={courseId}
+                    contentId=""
                   />
                 </div>
               )}
