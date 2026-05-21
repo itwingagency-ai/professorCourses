@@ -15,14 +15,15 @@ import {
   updateUserRole,
 } from "../controllers/user.controller";
 import { authorizeRoles, isAuthenticated } from "../middleware/auth";
+import { activationLimiter, loginLimiter, registrationLimiter } from "../middleware/rateLimit";
 
 const userRouter = express.Router();
 // register user
-userRouter.post("/registration", registrationUser);
+userRouter.post("/registration", registrationLimiter, registrationUser);
 // activate user
-userRouter.post("/activate-user", activateUser);
+userRouter.post("/activate-user", activationLimiter, activateUser);
 // login
-userRouter.post("/login", loginUser);
+userRouter.post("/login", loginLimiter, loginUser);
 // logged out
 userRouter.get("/logout", updateAccessToken, isAuthenticated, logoutUser);
 // refresh token or update

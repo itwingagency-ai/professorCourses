@@ -32,7 +32,7 @@ export interface IUser extends Document {
     url: string;
   };
   role: UserRole;
-  isverified: boolean;
+  isVerified: boolean;
   courses: IUserCourse[];
   comparePassword: (password: string) => Promise<boolean>;
   SignAccessToken: () => string;
@@ -75,7 +75,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       default: "student",
     },
 
-    isverified: {
+    isVerified: {
       type: Boolean,
       default: false,
     },
@@ -107,19 +107,19 @@ userSchema.pre<IUser>("save", async function (next) {
     return next();
   }
 
-  this.password = await bcrypt.hash(this.password, 10);
+  this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 userSchema.methods.SignAccessToken = function () {
   return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "", {
-    expiresIn: "5m",
+    expiresIn: process.env.ACCESS_TOKEN_EXPIRE ? `${process.env.ACCESS_TOKEN_EXPIRE}m` : "5m",
   });
 };
 
 userSchema.methods.SignRefreshToken = function () {
   return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || "", {
-    expiresIn: "3d",
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRE ? `${process.env.REFRESH_TOKEN_EXPIRE}d` : "3d",
   });
 };
 

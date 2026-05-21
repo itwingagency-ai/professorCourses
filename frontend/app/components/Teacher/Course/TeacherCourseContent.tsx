@@ -55,7 +55,7 @@ const TeacherCourseContent: FC<Props> = ({ active, setActive, courseContentData,
 
     // Handles adding new content, ensuring previous fields are filled
     const newContentHandler = (item: any) => {
-        console.log(courseContentData);
+
         // Check if the current fields are filled
         if (item.title === "" || item.description === "" || item.videoUrl === "" || item.links[0].title === "") {
             toast.error("Please fill all the fields"); // Show error toast if any field is empty
@@ -139,7 +139,7 @@ const TeacherCourseContent: FC<Props> = ({ active, setActive, courseContentData,
                         const showSectionInput =
                             index === 0 || item.videoSection !== courseContentData[index - 1].videoSection;
                         return (
-                            <>
+                            <React.Fragment key={index}>
                                 {/* Section container with conditional margin styling */}
                                 <div className={`w-full bg-[#3b3a3919] dark:bg-[#cdcBc819] p-4 ${showSectionInput ? "mt-8" : "mb-0"}`}>
                                     {
@@ -268,7 +268,7 @@ const TeacherCourseContent: FC<Props> = ({ active, setActive, courseContentData,
 
                                             {/* Links Section */}
                                             {item?.links.map((link: any, linkindex: number) => (
-                                                <div className="mb-3 block">
+                                                <div key={linkindex} className="mb-3 block">
                                                     <div className="w-full flex item-center justify-between">
                                                         <label className={`${styles.label}`}>
                                                             Link {linkindex + 1}
@@ -330,7 +330,7 @@ const TeacherCourseContent: FC<Props> = ({ active, setActive, courseContentData,
                                         </div>
                                     )}
                                 </div>
-                            </>
+                            </React.Fragment>
                         );
                     })
                 }

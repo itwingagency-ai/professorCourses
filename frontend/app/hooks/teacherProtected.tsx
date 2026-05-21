@@ -14,7 +14,7 @@ export default function TeacherProtected({ children }: ProtectedProps) {
   const router = useRouter();
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
-  const isTeacher = user?.role === "teacher";
+  const isTeacher = user?.role === "teacher" || user?.role === "admin";
 
   useEffect(() => {
     if (authChecked && (!user || !isTeacher)) {

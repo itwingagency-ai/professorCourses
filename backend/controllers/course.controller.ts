@@ -8,13 +8,9 @@ import {
   createCourse,
   getAllCoursesService,
 } from "../services/course.services";
-import { url } from "inspector";
 import { redis } from "../utils/redis";
-import { json } from "stream/consumers";
 import mongoose from "mongoose";
-import ejs, { name } from "ejs";
-import { title } from "process";
-import path from "path";
+import ejs from "ejs";
 import sendMail from "../utils/sendMail";
 import NotificationModel from "../models/notification.model";
 import axios from "axios";
@@ -74,13 +70,21 @@ export const uploadCourse = CatchAsyncError(
                 url: thumbnail
             };
         } else if (process.env.CLOUD_NAME && process.env.CLOUD_API_KEY && process.env.CLOUD_SECRET_KEY) {
-            const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
-              folder: "courses",
-            });
-            data.thumbnail = {
-              public_id: myCloud.public_id,
-              url: myCloud.secure_url,
-            };
+            try {
+              const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
+                folder: "courses",
+              });
+              data.thumbnail = {
+                public_id: myCloud.public_id,
+                url: myCloud.secure_url,
+              };
+            } catch (cloudinaryErr) {
+              console.error("Cloudinary upload failed, falling back to placeholder:", cloudinaryErr);
+              data.thumbnail = {
+                  public_id: "placeholder",
+                  url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg"
+              };
+            }
         } else {
             console.log("⚠️ Cloudinary not configured. Using placeholder for thumbnail.");
             data.thumbnail = {
@@ -89,77 +93,50 @@ export const uploadCourse = CatchAsyncError(
             };
         }
       }
-      createCourse(data, res, next);
 
-      // Invalidate the Redis cache after creating the course
+      // Invalidate the Redis cache BEFORE creating the course so that
+      // any error here is catchable (response hasn't been sent yet).
       await redis.del("allCourses");
       await redis.del("public:publishedCourses");
 
-      // Update the cache with fresh course data from MongoDB
+      // Create the course (this also sends the HTTP response)
+      await createCourse(data, res, next);
+
+      // Rebuild the cache with fresh data from MongoDB
       const courses = await CourseModel.find().select(
         "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
       );
-      await redis.set("allCourses", JSON.stringify(courses), "EX", 604800); // 7 days expiray;
+      await redis.set("allCourses", JSON.stringify(courses), "EX", 604800); // 7 days
     } catch (error: any) {
       next(new ErrorHandler(error.message, 500));
     }
   }
 );
 
-// edit course
-// export const editCourse = CatchAsyncError(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//       const data = req.body;
-//       const thumbnail = data.thumbnail;
-      
-//       const courseId = req.params.id;
-//       const courseData = await CourseModel.findById(courseId) as any;
-//       if (thumbnail && !thumbnail.startsWith("https")) {
-//         await cloudinary.v2.uploader.destroy(courseData.thumbnail.public_id);
-//         const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
-//           folder: "courses",
-//         });
-//         data.thumbnail = {
-//           public_id: myCloud.public_id,
-//           url: myCloud.secure_url,
-//         };
-//       }
-//       if (thumbnail.startsWith("https")){
-//         data.thumbnail = {
-//           public_id: courseData?.thumbnail.public_id,
-//           url: courseData?.thumbnail.secure_url,
-//         };
-//       }
-//       const course = await CourseModel.findByIdAndUpdate(
-//         courseId,
-//         {
-//           $set: data,
-//         },
-//         { new: true }
-//       );
-//       res.status(201).json({
-//         sucsess: true,
-//         course,
-//       });
-
-//       // invalidate the cache
-//       await redis.del("allCourses");
-
-//       // Update Redis cache with fresh course data from MongoDB
-//       const courses = await CourseModel.find().select(
-//         "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
-//       );
-//       await redis.set("allCourses", JSON.stringify(courses), "EX", 604800); // 7 days expiray
-//     } catch (error: any) {
-//       next(new ErrorHandler(error.message, 500));
-//     }
-//   }
-// );
 export const editCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = req.body;
+      const rawData = req.body;
+      const allowedFields = [
+        "name", "description", "category", "price", "estimatedPrice", 
+        "tags", "level", "demoUrl", "benefits", "prerequisites", 
+        "courseData", "thumbnail", "status", "rejectionReason"
+      ];
+      
+      const data: any = {};
+      for (const field of allowedFields) {
+        if (rawData[field] !== undefined) {
+          data[field] = rawData[field];
+        }
+      }
+
+      if (data.status) {
+        const allowedStatuses = ["draft", "pending", "published", "rejected"];
+        if (!allowedStatuses.includes(data.status)) {
+          return next(new ErrorHandler("Invalid status", 400));
+        }
+      }
+
       const thumbnail = data.thumbnail; // This is an object in your example.
 
       const courseId = req.params.id;
@@ -328,6 +305,10 @@ export const getCourseByUser = CatchAsyncError(
         return next(new ErrorHandler("Course not found", 404));
       }
 
+      if (course.status !== "published") {
+        return next(new ErrorHandler("Course is currently under review", 403));
+      }
+
       if (!course.courseData || course.courseData.length === 0) {
         return next(new ErrorHandler("Course content not found or empty", 404));
       }
@@ -349,48 +330,6 @@ interface IAddQuestionData {
   courseId: string;
   contentId: string;
 }
-
-// export const addQuestion = CatchAsyncError(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//       const { question, courseId, contentId }: IAddQuestionData = req.body;
-//       const course = await CourseModel.findById(courseId);
-//       if (!mongoose.Types.ObjectId.isValid(contentId)) {
-//         return next(new ErrorHandler(" invalid content id", 400));
-//       }
-//       const courseContent = course?.courseData?.find((item: any) =>
-//         item._id.equals(contentId)
-//       );
-//       if (!courseContent) {
-//         return next(new ErrorHandler(" invalid content id", 400));
-//       }
-
-//       // create a new question object
-//       const newQuestion: any = {
-//         user: req.user,
-//         question,
-//         questionReplies: [],
-//       };
-//       // add this question to our course Content
-//       courseContent.questions.push(newQuestion);
-//       // create Notification
-//       await NotificationModel.create({
-//         user: req.user?._id,
-//         title: "New Question Recieved",
-//         message: ` you have a new Question from ${courseContent.title}`,
-//       });
-
-//       // save the updated Course
-//       await course?.save();
-//       res.status(200).json({
-//         success: true,
-//         course,
-//       });
-//     } catch (error: any) {
-//       next(new ErrorHandler(error.message, 500));
-//     }
-//   }
-// );
 
 // add answer in course Question
 export const addQuestion = CatchAsyncError(
@@ -461,6 +400,11 @@ export const addQuestion = CatchAsyncError(
       // Save the updated course
       await course?.save();
 
+      // Invalidate the cache
+      await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(`public:course:${courseId}`);
+
       // Respond with success
       res.status(200).json({
         success: true,
@@ -517,8 +461,13 @@ export const addAnswer = CatchAsyncError(
       question.questionReplies.push(newAnswer);
       await course?.save();
 
+      // Invalidate the cache
+      await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(`public:course:${courseId}`);
+
       // Send notification to question author
-      if (req.user?._id === question.user._id) {
+      if (String(req.user?._id) === String(question.user._id)) {
         await NotificationModel.create({
           user: req.user?._id,
           title: "New Question Reply Received",
@@ -603,11 +552,18 @@ export const addReview = CatchAsyncError(
         course.ratings = avg / course.reviews.length;
       }
       await course?.save();
-      // crate notification
-      const notification = {
-        title: " New Review Recieved",
-        message: `${req.user?.name} has a given a review in ${course?.name}`,
-      };
+
+      // Invalidate the cache
+      await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(`public:course:${courseId}`);
+
+      // Create and save the review notification
+      await NotificationModel.create({
+        user: req.user?._id,
+        title: "New Review Received",
+        message: `${req.user?.name} has given a review on ${course?.name}`,
+      });
 
       res.status(200).json({
         success: true,
@@ -649,6 +605,11 @@ export const addReplyToReview = CatchAsyncError(
       review.commentReplies.push(replyData);
       await course?.save();
 
+      // Invalidate the cache
+      await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(`public:course:${courseId}`);
+
       res.status(200).json({
         success: true,
         course,
@@ -669,35 +630,6 @@ export const getAdminAllCourses = CatchAsyncError(
     }
   }
 );
-
-// // delete Course --- only for admin
-// export const deleteCourse = CatchAsyncError(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//       const { id } = req.params;
-
-//       const course = await CourseModel.findById(id);
-
-//       if (!course) {
-//         return next(new ErrorHandler("Course not found", 404));
-//       }
-//       if(await course.deleteOne({ id })){
-//         res.status(200).json({ success: true, message: "Course deleted successfully" });
-//       }
-//       // update redis
-//       const redisResult = await redis.del(id);
-//       if (!redisResult) {
-//         console.log(`Redis key for Course ${id} not found.`);
-//       }
-//       res.status(200).json({
-//         success: true,
-//         message: " Course deleted Successfully",
-//       });
-//     } catch (error: any) {
-//       return next(new ErrorHandler(error.message, 400));
-//     }
-//   }
-// );
 
 export const deleteCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -752,6 +684,10 @@ export const generateVideoUrl = CatchAsyncError(
     try {
       const { videoId, courseId, contentId } = req.body;
 
+      if (!videoId || !courseId || !contentId) {
+        return next(new ErrorHandler("Missing required fields", 400));
+      }
+
       if (!mongoose.Types.ObjectId.isValid(courseId)) {
         return next(new ErrorHandler("Invalid course ID", 400));
       }
@@ -790,11 +726,14 @@ export const generateVideoUrl = CatchAsyncError(
           hasAccess = true;
         }
       } else if (effectiveRole === "student") {
+        if (course.status !== "published") {
+          return next(new ErrorHandler("Course is not published", 403));
+        }
         const userCourseList = req.user?.courses;
         if (userCourseList && userCourseList.length > 0) {
           hasAccess = userCourseList.some((c: any) => {
              const purchasedId = c.courseId?._id || c.courseId || c._id || c.id || c;
-             return purchasedId.toString() === courseId.toString();
+             return String(purchasedId) === String(courseId);
           });
         }
       }

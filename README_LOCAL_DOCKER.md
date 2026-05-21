@@ -15,9 +15,11 @@ Install and open Docker Desktop.
 
 Backend env:
 `backend/.env.docker`
+(Copy from example: `cp backend/.env.docker.example backend/.env.docker`)
 
 Frontend env:
 `frontend/.env.docker`
+(Copy from example: `cp frontend/.env.docker.example frontend/.env.docker`)
 
 Important frontend API URL:
 `NEXT_PUBLIC_SERVER_API=http://localhost:8000/api/v1/`

@@ -28,6 +28,7 @@ import avatarDefault from "../../../../public/assests/avatar.png";
 import { useSelector } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Box, IconButton, Typography } from "@mui/material";
 import { useLogOutMutation } from "@/redux/features/auth/authApi";
@@ -35,31 +36,33 @@ import { signOut } from "next-auth/react";
 
 interface itemProps {
     title: string;
-    to: string,
+    to: string;
     icon: JSX.Element;
-    selected: string;
-    setSelected: any;
 }
 
-const Item: FC<itemProps> = ({ title, to, icon, selected, setSelected }) => {
+const Item: FC<itemProps> = ({ title, to, icon }) => {
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const isActive = pathname === to || (pathname?.startsWith(`${to}/`) ?? false);
+
     return (
-        <Link href={to} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <MenuItem
-                active={selected === title}
-                onClick={() => setSelected(title)}
-                icon={icon}
-            >
-                <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
-            </MenuItem>
-        </Link>
+        <MenuItem
+            active={isActive}
+            icon={icon}
+            onClick={() => router.push(to)}
+            style={{ cursor: "pointer" }}
+        >
+            <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
+        </MenuItem>
     );
 };
 
 const sidebar = () => {
     const { user } = useSelector((state: any) => state.auth);
     const [logoutApi] = useLogOutMutation();
+    const router = useRouter();
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [selected, setSelected] = useState("Dashboard");
     const [mounted, setMounted] = useState(false);
     const { theme, setTheme } = useTheme();
 
@@ -70,7 +73,7 @@ const sidebar = () => {
     const logoutHandler = async () => {
         await logoutApi({}).unwrap().catch(() => {});
         await signOut({ redirect: false });
-        window.location.reload();
+        router.replace("/");
     };
     return (
         <Box
@@ -175,18 +178,14 @@ const sidebar = () => {
                     )}
                     <Box paddingLeft={isCollapsed ? undefined : "10%"}>
                         <Item
-                            title="Dashbaord"
+                            title="Dashboard"
                             to="/admin"
                             icon={<HomeOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Item
                             title="Notifications"
                             to="/admin/notifications"
                             icon={<ManageHistoryIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Typography
                             variant="h5"
@@ -198,15 +197,11 @@ const sidebar = () => {
                             title="Users"
                             to="/admin/users"
                             icon={<GroupsIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Item
                             title="Invoices"
                             to="/admin/invoices"
                             icon={<ReceiptOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Typography
                             variant="h5"
@@ -218,15 +213,11 @@ const sidebar = () => {
                             title="Create Course"
                             to="/admin/create-course"
                             icon={<VideoCallIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Item
                             title="Live Courses"
                             to="/admin/courses"
                             icon={<OndemandVideoIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Typography
                             variant="h5"
@@ -238,22 +229,16 @@ const sidebar = () => {
                             title="Hero"
                             to="/admin/hero"
                             icon={<WebIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Item
                             title="FAQ"
                             to="/admin/faq"
                             icon={<QuizIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Item
                             title="Categories"
                             to="/admin/categories"
                             icon={<WysiwygIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Typography
                             variant="h5"
@@ -265,8 +250,6 @@ const sidebar = () => {
                             title="Manage Team"
                             to="/admin/team"
                             icon={<PeopleOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Typography
                             variant="h5"
@@ -278,32 +261,26 @@ const sidebar = () => {
                             title="Courses Analytics"
                             to="/admin/courses-analytics"
                             icon={<BarChartOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Item
                             title="Order Analytics"
                             to="/admin/orders-analytics"
                             icon={<MapOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
                         <Item
                             title="Users Analytics"
                             to="/admin/users-analytics"
                             icon={<ManageHistoryIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
-                        <div onClick={logoutHandler}>
-                            <Item
-                                title="Logout"
-                                to="/"
-                                icon={<ExitToAppIcon />}
-                                selected={selected}
-                                setSelected={setSelected}
-                            />
-                        </div>
+                        <MenuItem
+                            icon={<ExitToAppIcon />}
+                            onClick={logoutHandler}
+                            style={{ cursor: "pointer" }}
+                        >
+                            <Typography className="!text-[16px] !font-Poppins">
+                                Logout
+                            </Typography>
+                        </MenuItem>
                     </Box>
                 </Menu>
             </ProSidebar>

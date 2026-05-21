@@ -49,6 +49,7 @@ const courses = [
     category: "Web Development",
     price: 49,
     estimatedPrice: 99,
+    status: "published",
     thumbnail: {
       public_id: "seed/course1",
       url: "https://picsum.photos/seed/course1/800/600",
@@ -128,6 +129,7 @@ const courses = [
     category: "Data Science",
     price: 79,
     estimatedPrice: 149,
+    status: "published",
     thumbnail: {
       public_id: "seed/course2",
       url: "https://picsum.photos/seed/course2/800/600",
@@ -193,6 +195,7 @@ const courses = [
     category: "Design",
     price: 39,
     estimatedPrice: 79,
+    status: "published",
     thumbnail: {
       public_id: "seed/course3",
       url: "https://picsum.photos/seed/course3/800/600",
@@ -257,6 +260,7 @@ const courses = [
     category: "Mobile Dev",
     price: 59,
     estimatedPrice: 119,
+    status: "published",
     thumbnail: {
       public_id: "seed/course4",
       url: "https://picsum.photos/seed/course4/800/600",
@@ -321,6 +325,7 @@ const courses = [
     category: "DevOps",
     price: 89,
     estimatedPrice: 199,
+    status: "published",
     thumbnail: {
       public_id: "seed/course5",
       url: "https://picsum.photos/seed/course5/800/600",
@@ -385,6 +390,7 @@ const courses = [
     category: "AI/ML",
     price: 0,
     estimatedPrice: 49,
+    status: "published",
     thumbnail: {
       public_id: "seed/course6",
       url: "https://picsum.photos/seed/course6/800/600",
@@ -436,6 +442,7 @@ const courses = [
     category: "Cybersecurity",
     price: 69,
     estimatedPrice: 129,
+    status: "published",
     thumbnail: {
       public_id: "seed/course7",
       url: "https://picsum.photos/seed/course7/800/600",
@@ -500,6 +507,7 @@ const courses = [
     category: "Cloud Computing",
     price: 99,
     estimatedPrice: 249,
+    status: "published",
     thumbnail: {
       public_id: "seed/course8",
       url: "https://picsum.photos/seed/course8/800/600",

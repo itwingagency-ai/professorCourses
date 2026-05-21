@@ -18,8 +18,11 @@ const CoursePlayer: FC<Props> = ({ videoUrl, title, courseId, contentId }) => {
   });
 
   useEffect(() => {
-    if (!videoUrl) {
-      console.error("videoUrl is undefined or empty.");
+    if (!videoUrl || !courseId || !contentId) {
+      return;
+    }
+
+    if (/^https?:\/\//i.test(videoUrl)) {
       return;
     }
 
@@ -38,14 +41,11 @@ const CoursePlayer: FC<Props> = ({ videoUrl, title, courseId, contentId }) => {
         setVideoData(res.data);
       })
       .catch((err) => {
-        if (err.response) {
-          console.error("Error Response Data:", err.response.data);
-          console.error("Status Code:", err.response.status);
-        } else {
-          console.error("Error Message:", err.message);
+        if (process.env.NODE_ENV === "development") {
+          console.error("OTP API Error:", err.message);
         }
       });
-  }, [videoUrl]);
+  }, [videoUrl, courseId, contentId]);
 
   return (
     <div style={{ paddingTop: "41%", position: "relative" }}>

@@ -31,7 +31,7 @@ export default function Protected({ children }: ProtectedProps) {
     return <Loader />;
   }
 
-  if (!user) {
+  if (!user || user.role === "admin" || user.role === "teacher") {
     return null;
   }
 

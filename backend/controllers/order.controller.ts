@@ -13,7 +13,7 @@ import mongoose from "mongoose";
 import { redis } from "../utils/redis";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy");
 
 const getPurchasedCourseId = (course: any): string | null => {
   if (!course) return null;
@@ -45,10 +45,6 @@ const getPurchasedCourseId = (course: any): string | null => {
   return null;
 };
 
-const normalizeId = (id: any): string => {
-  return id?.toString ? id.toString() : String(id);
-};
-
 export const createOrder = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -62,6 +58,15 @@ export const createOrder = CatchAsyncError(
         return next(new ErrorHandler("Invalid course ID", 400));
       }
 
+      // Prevent non-student roles from enrolling
+      const userRole = req.user?.role;
+      const effectiveRole = userRole === "user" ? "student" : userRole;
+      if (effectiveRole !== "student") {
+        return next(new ErrorHandler("Only students can enroll in courses", 403));
+      }
+
+      // Do not trust client payment_info, do not require Stripe PaymentIntent for MVP
+      /* 
       if (payment_info && "id" in payment_info) {
         const paymentIntentId = payment_info.id;
         const paymentIntent = await stripe.paymentIntents.retrieve(
@@ -72,6 +77,7 @@ export const createOrder = CatchAsyncError(
           return next(new ErrorHandler("Payment not authorized!", 400));
         }
       }
+      */
 
       const user = await userModel.findById(req.user?._id);
 
@@ -79,36 +85,34 @@ export const createOrder = CatchAsyncError(
         return next(new ErrorHandler("User not found. Please login again.", 404));
       }
 
-      const course = await CourseModel.findById(courseId);
-
-      if (!course) {
-        return next(new ErrorHandler("Course not found", 404));
-      }
-
-      const normalizedCourseId = normalizeId(courseId);
-
-      const courseExistInUser = user.courses?.some((userCourse: any) => {
-        const purchasedId = getPurchasedCourseId(userCourse);
-        return purchasedId === normalizedCourseId;
+      const course = await CourseModel.findOne({
+        _id: courseId,
+        status: "published",
       });
 
-      if (courseExistInUser) {
-        return res.status(200).json({
-          success: true,
-          alreadyPurchased: true,
-          message: "You have already purchased this course",
-          course,
-          user,
-        });
+      if (!course) {
+        return next(new ErrorHandler("Course not found or not available for enrollment", 404));
       }
+
+      const alreadyEnrolled = user.courses?.some(
+        (c: any) => String(c.courseId || c._id || c) === String(courseId)
+      );
+
+      if (alreadyEnrolled) {
+        return next(new ErrorHandler("You are already enrolled in this course", 400));
+      }
+
+      const normalizedPaymentInfo = {
+        type: "free_enrollment",
+        status: "not_required",
+        provider: "none",
+        note: "Payment disabled for MVP. Stripe will be integrated later.",
+      };
 
       const orderData: any = {
         courseId: String(course._id),
         userId: String(user._id),
-        payment_info: payment_info || {
-          type: "local-mock",
-          status: "success",
-        },
+        payment_info: normalizedPaymentInfo,
       };
 
       const order = await OrderModel.create(orderData);

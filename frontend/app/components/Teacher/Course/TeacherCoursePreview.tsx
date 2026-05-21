@@ -33,12 +33,24 @@ return (
   <div className="w-[90%] ml-20 m-auto py-5 mb-5 " >
     <div className=" w-full relative ">
       <div className="w-full mt-10">
-        <CoursePlayer
-          videoUrl={courseData?.demoUrl}
-          title={courseData?.title}
-          courseId={courseData?._id || ""}
-          contentId=""
-        />
+        {courseData?.demoUrl ? (
+          /^https?:\/\//i.test(courseData.demoUrl) && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(courseData.demoUrl) ? (
+            <video src={courseData.demoUrl} controls className="w-full" />
+          ) : !/^https?:\/\//i.test(courseData.demoUrl) && courseData.demoUrl.length >= 8 ? (
+            <div className="text-center p-8 bg-black">
+              <h3 className="text-white text-[20px]">Protected Video</h3>
+              <p className="text-white">Save course lesson first to preview protected video.</p>
+            </div>
+          ) : (
+            <div className="text-center p-8 bg-black">
+              <h3 className="text-white text-[20px]">Video format not supported</h3>
+            </div>
+          )
+        ) : (
+          <div className="text-center p-8 bg-black">
+            <h3 className="text-white text-[20px]">Video not configured</h3>
+          </div>
+        )}
       </div>
 
       {/** Price Showing */}

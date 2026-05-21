@@ -355,15 +355,18 @@ Network: `lms_network` (bridge). Start: `docker compose up --build`
 ---
 
 ## 8. Known Dev Workarounds & Gotchas
-1. **Email bypass**: Registration email is commented out in `user.controller.ts`. OTP is logged to console and returned in the API response for local testing.
-2. **Stripe mock**: `STRIPE_SECRET_KEY=sk_test_mock` — Stripe calls will fail. Free courses use `payment_info: {type:"local-mock"}` to bypass.
-3. **DNS override**: `server.ts` sets `dns.setServers(['8.8.8.8', '8.8.4.4'])` to work around local DNS issues with Atlas.
+1. **Email fallback**: Registration attempts to send via Nodemailer. On failure (SMTP not configured), OTP is logged to console in dev. Email IS configured in `.env` (Gmail SMTP), but verify app password is still valid.
+2. **Stripe mock**: `STRIPE_SECRET_KEY=sk_test_mock` — `newPayment` (PaymentIntent creation) will fail. Free course enrollment uses `payment_info: {type:"free_enrollment"}`. **Stripe PaymentIntent verification is commented out** in `createOrder` — paid courses can be enrolled for free. Must enable before production.
+3. **DNS override**: `server.ts` sets `dns.setServers(['8.8.8.8', '8.8.4.4'])` in non-production to work around local DNS issues with Atlas.
 4. **Redis fallback**: If Redis is unreachable, the app silently switches to in-memory `RedisMock`. Sessions are lost on restart.
-5. **MongoMemoryServer**: Used as fallback when Atlas/local MongoDB is unreachable. Data is ephemeral.
-6. **Cloudinary fallback**: If Cloudinary env vars are missing, thumbnail uploads use a placeholder URL.
-7. **`userHasCourseAccess()`**: Utility in `course.controller.ts` and `order.controller.ts` handles multiple ID formats (string, object with courseId, nested _id). Duplicated across files.
+5. **MongoMemoryServer**: Used as fallback when Atlas/local MongoDB is unreachable. Data is ephemeral — run `npm run seed` after each restart.
+6. **Cloudinary fallback**: If Cloudinary env vars are missing, thumbnail uploads use a placeholder URL. Credentials ARE in `.env` — test with actual upload.
+7. **`userHasCourseAccess()`**: Utility in `course.controller.ts` handles multiple ID formats (string, object with courseId, nested _id). Also duplicated in `order.controller.ts` — should be extracted to shared utils.
 8. **`normalizers.ts`**: Frontend handles inconsistent API response shapes (data.course vs data.courses vs data.data.course).
-9. **`isverified` vs `isVerified`**: Model field is `isverified` (lowercase v) but seed data uses `isVerified`. Mongoose ignores the mismatch silently.
+9. **Course status workflow**: Teacher creates course → `status: "pending"`. Admin must approve via `PUT /api/v1/admin/courses/:id/status` with `{"status":"published"}` before it appears publicly. Seed script creates courses as `"published"` directly.
+10. **Teacher role**: Teachers use `/api/v1/teacher/*` routes for their own course management. They can also use `PUT /add-answer` on the main course route (admin + teacher both allowed).
+11. **Student progress**: Tracked in `StudentProgress` model per-course. `GET /api/v1/student/progress/:courseId`, `POST /progress/mark-complete`, `POST /progress/last-lesson`.
+12. **`@types/*` packages**: All in `devDependencies`. `backend/@types/custom.d.ts` extends Express `Request` with `user?: IUser` — auto-discovered by TypeScript without explicit `typeRoots` config.
 
 ---
 *Auto-indexed by Graphify. Do not remove this file.*

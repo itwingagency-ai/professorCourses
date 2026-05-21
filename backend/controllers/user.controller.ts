@@ -20,6 +20,7 @@ import {
 } from "../services/user.services";
 import cloudinary from "cloudinary";
 import mongoose from "mongoose";
+import crypto from "crypto";
 // creating interface for Register User
 interface IRegistrationBody {
   name: string;
@@ -45,16 +46,6 @@ export const registrationUser = CatchAsyncError(
         password,
       };
 
-      // Direct Sign Up (Bypassing OTP)
-      await userModel.create(user);
-      
-      res.status(201).json({
-        success: true,
-        message: "Registration successful. You can now login.",
-      });
-
-      /* 
-      // calling 4 digit CreateToken Function
       const activationToken = createActivationToken(user);
       const activationCode = activationToken.activationCode;
       const data = { user: { name: user.name }, activationCode };
@@ -78,15 +69,16 @@ export const registrationUser = CatchAsyncError(
         });
       } catch (error: any) {
         console.error("Failed to send email:", error.message);
-        console.log(`[FALLBACK] Activation code for ${user.email}: ${activationCode}`);
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[DEV] Activation code for ${user.email}: ${activationCode}`);
+        }
         
         res.status(201).json({
           success: true,
-          message: `Email failed. Check your server console for the activation code.`,
+          message: `Email failed. Check your server console for the activation code if in dev mode.`,
           activationToken: activationToken.token,
         });
       }
-      */
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
@@ -100,12 +92,13 @@ interface IActivationToken {
 }
 // Create Activation Token
 export const createActivationToken = (user: any): IActivationToken => {
-  const activationCode = Math.floor(1000 + Math.random() * 9000).toString();
+  const activationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedCode = crypto.createHash("sha256").update(activationCode).digest("hex");
 
   const token = jwt.sign(
     {
       user,
-      activationCode,
+      activationCode: hashedCode,
     },
     process.env.ACTIVATION_SECRET as Secret,
     {
@@ -133,7 +126,9 @@ export const activateUser = CatchAsyncError(
         process.env.ACTIVATION_SECRET as string
       ) as { user: IUser; activationCode: string };
 
-      if (newUser.activationCode !== activation_code) {
+      const hashedInputCode = crypto.createHash("sha256").update(activation_code).digest("hex");
+
+      if (newUser.activationCode !== hashedInputCode) {
         return next(new ErrorHandler("Invalid Activation Code", 400));
       }
 
@@ -337,7 +332,7 @@ export const updateUserInfo = CatchAsyncError(
         await redis.set(userId, JSON.stringify(user)); // Now userId is of type string
       }
 
-      res.status(201).json({
+      res.status(200).json({
         success: true,
         user,
       });
@@ -375,10 +370,22 @@ export const updatePassword = CatchAsyncError(
       user.password = newPassword;
       await user.save();
       // update redis;
-      await redis.set(req.user?._id as string, JSON.stringify(user));
-      res.status(201).json({
+      await redis.del(req.user?._id as string);
+      
+      // Clear cookies to force re-login
+      res.cookie("access_token", "", { ...accessTokenOptions, maxAge: 1 });
+      res.cookie("refresh_token", "", { ...refreshTokenOptions, maxAge: 1 });
+
+      // Strip password from response
+      const safeUser: any = user.toObject ? user.toObject() : { ...user };
+      if (safeUser.password) {
+        delete safeUser.password;
+      }
+
+      res.status(200).json({
         success: true,
-        user,
+        message: "Password updated successfully. Please login again.",
+        user: safeUser,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
@@ -515,7 +522,7 @@ export const deleteUser = CatchAsyncError(
       if (!user) {
         return next(new ErrorHandler("User not found", 404));
       }
-      await user.deleteOne({ id });
+      await user.deleteOne();
       // update redis
       const redisResult = await redis.del(id);
       if (!redisResult) {

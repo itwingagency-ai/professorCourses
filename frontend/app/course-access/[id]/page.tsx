@@ -11,6 +11,7 @@ import Heading from "../../utils/Heading";
 import { useGetCourseContentQuery } from "@/redux/features/courses/coursesApi";
 import LessonQuestions from "../../components/Course/LessonQuestions";
 import CourseReview from "../../components/Course/CourseReview";
+import CoursePlayer from "../../utils/CoursePlayer";
 import { normalizeSingleCourseResponse, normalizeCourseContentResponse } from "@/lib/normalizers";
 import StudentProgressBar from "../../components/Student/StudentProgressBar";
 import {
@@ -385,11 +386,30 @@ const CourseAccessPage: FC = () => {
                 <main className="rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] overflow-hidden">
                   <div className="w-full bg-black aspect-video flex items-center justify-center">
                     {activeLesson?.videoUrl ? (
-                      <video
-                        src={activeLesson.videoUrl}
-                        controls
-                        className="w-full h-full"
-                      />
+                      /^https?:\/\//i.test(activeLesson.videoUrl) && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(activeLesson.videoUrl) ? (
+                        <video
+                          src={activeLesson.videoUrl}
+                          controls
+                          className="w-full h-full"
+                        />
+                      ) : !/^https?:\/\//i.test(activeLesson.videoUrl) && activeLesson.videoUrl.length >= 8 ? (
+                        <div className="w-full h-full relative">
+                          <div className="absolute inset-0 w-full h-full">
+                             <CoursePlayer
+                                videoUrl={activeLesson.videoUrl}
+                                title={activeLesson.title}
+                                courseId={courseId}
+                                contentId={String((activeLesson as any)._id || activeLesson.id)}
+                             />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center p-8">
+                          <h3 className="text-[24px] font-Poppins font-[700] text-white">
+                            Video format not supported
+                          </h3>
+                        </div>
+                      )
                     ) : (
                       <div className="text-center p-8">
                         <h3 className="text-[24px] font-Poppins font-[700] text-white">

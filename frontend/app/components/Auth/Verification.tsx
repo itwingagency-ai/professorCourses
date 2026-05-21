@@ -41,7 +41,7 @@ const Verification: FC<Props> = ({ setRoute }) => {
         toast.error(errorData.data.message);
         setInvalidError(true);
       } else {
-        console.log('An error occured :', error);
+        if (process.env.NODE_ENV === "development") console.log('An error occured :', error);
       }
     }
   }, [isSuccess, error])

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { UserLoggedIn, UserLoggedOut } from "../auth/authSlice";
+import { UserLoggedIn, UserLoggedOut, AuthChecked } from "../auth/authSlice";
 import { API_BASE_URL } from "@/lib/apiConfig";
 
 const rawBaseQuery = fetchBaseQuery({
@@ -58,7 +58,11 @@ export const apiSlice = createApi({
             })
           );
         } catch (error: any) {
-          dispatch(UserLoggedOut());
+          // On error (e.g. 401 unauthenticated), mark auth as checked
+          // WITHOUT dispatching UserLoggedOut — that would clear user state
+          // and trigger role guards to redirect to "/" on any transient
+          // network hiccup. Only dispatch UserLoggedOut on explicit logout.
+          dispatch(AuthChecked());
         }
       },
     }),

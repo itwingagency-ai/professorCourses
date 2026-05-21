@@ -44,7 +44,7 @@ const EditCourse: FC<Props> = ({ id }) => {
     useEffect(() => {
         if (editCourseData) {
             // add data to the field one by one
-            console.log(editCourseData);
+
             setCourseInfo({
                 name: editCourseData?.name,
                 description: editCourseData?.description,

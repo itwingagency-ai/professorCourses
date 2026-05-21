@@ -25,7 +25,7 @@ const AllInvoices: FC<Props> = ({ isDashboard }) => {
 
   // order state
   const [orderData, setOrderData] = useState<any>([]);
-console.log(courseData);
+
   useEffect(() => {
     if (data) {
       const temp = data.orders.map((item: any) => {

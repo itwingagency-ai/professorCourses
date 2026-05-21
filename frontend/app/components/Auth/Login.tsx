@@ -83,7 +83,7 @@ const Login: FC<Props> = ({ setRoute, setOpen }) => {
                 const errorData = error as any;
                 toast.error(errorData.data?.message || "Login failed");
             } else {
-                console.log("An error occurred:", error);
+                if (process.env.NODE_ENV === "development") console.log("An error occurred:", error);
                 toast.error("Login failed");
             }
         }

@@ -1,0 +1,58 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: lms_mongo_prod
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - lms_mongo_prod_data:/data/db
+    networks:
+      - lms_prod_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lms_redis_prod
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - lms_prod_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: lms_backend_prod
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - lms_prod_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: lms_frontend_prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env.docker
+    depends_on:
+      - backend
+    networks:
+      - lms_prod_network
+
+volumes:
+  lms_mongo_prod_data:
+
+networks:
+  lms_prod_network:
+    driver: bridge

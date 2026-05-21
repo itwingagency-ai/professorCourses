@@ -1,9 +1,11 @@
+require("dotenv").config();
 import {v2 as cloudinary} from "cloudinary";
 import {app} from "./app";
 import connectDB from "./utils/db";
 import dns from "dns";
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-require("dotenv").config();
+if (process.env.NODE_ENV !== "production") {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+}
 
 // cloudinary config
   cloudinary.config({

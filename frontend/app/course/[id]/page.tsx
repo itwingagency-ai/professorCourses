@@ -180,7 +180,9 @@ const CourseDetailsPage: FC = () => {
         );
       }
     } catch (error) {
-      console.log("User refresh failed after enrollment:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.log("User refresh failed after enrollment:", error);
+      }
     }
   };
 

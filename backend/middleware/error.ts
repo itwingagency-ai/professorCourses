@@ -10,6 +10,14 @@ export const ErrorMiddleware = (
   err.statusCode = err.statusCode || 500;
   err.message = err.message || "Internal Server Error";
 
+  // Log error internally
+  console.error(`[ERROR] ${req.method} ${req.url} - ${err.message}`, err);
+
+  // Hide detailed internal errors in production
+  if (process.env.NODE_ENV === "production" && err.statusCode === 500) {
+    err.message = "Internal Server Error";
+  }
+
   // wrong mongodb id error from frontend
   if (err.name === "CastError") {
     const message = ` Resource not found. Invalid : ${err.path}`;

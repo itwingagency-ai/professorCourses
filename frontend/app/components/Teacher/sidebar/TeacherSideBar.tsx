@@ -23,6 +23,7 @@ import avatarDefault from "../../../../public/assests/avatar.png";
 import { useSelector } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Box, IconButton, Typography } from "@mui/material";
 import { useLogOutMutation } from "@/redux/features/auth/authApi";
@@ -32,29 +33,31 @@ interface itemProps {
     title: string;
     to: string;
     icon: JSX.Element;
-    selected: string;
-    setSelected: any;
 }
 
-const Item: FC<itemProps> = ({ title, to, icon, selected, setSelected }) => {
+const Item: FC<itemProps> = ({ title, to, icon }) => {
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const isActive = pathname === to || (pathname?.startsWith(`${to}/`) ?? false);
+
     return (
-        <Link href={to} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <MenuItem
-                active={selected === title}
-                onClick={() => setSelected(title)}
-                icon={icon}
-            >
-                <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
-            </MenuItem>
-        </Link>
+        <MenuItem
+            active={isActive}
+            icon={icon}
+            onClick={() => router.push(to)}
+            style={{ cursor: "pointer" }}
+        >
+            <Typography className="!text-[16px] !font-Poppins ">{title}</Typography>
+        </MenuItem>
     );
 };
 
 const TeacherSideBar = () => {
     const { user } = useSelector((state: any) => state.auth);
     const [logoutApi] = useLogOutMutation();
+    const router = useRouter();
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [selected, setSelected] = useState("Dashboard");
     const [mounted, setMounted] = useState(false);
     const { theme } = useTheme();
 
@@ -66,7 +69,7 @@ const TeacherSideBar = () => {
     const logoutHandler = async () => {
         await logoutApi({}).unwrap().catch(() => {});
         await signOut({ redirect: false });
-        window.location.reload();
+        router.replace("/");
     };
 
     return (
@@ -162,8 +165,6 @@ const TeacherSideBar = () => {
                             title="Dashboard"
                             to="/teacher"
                             icon={<HomeOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
 
                         <Typography
@@ -178,16 +179,12 @@ const TeacherSideBar = () => {
                             title="My Courses"
                             to="/teacher/courses"
                             icon={<OndemandVideoIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
 
                         <Item
                             title="Create Course"
                             to="/teacher/create-course"
                             icon={<VideoCallIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
 
                         <Typography
@@ -202,24 +199,18 @@ const TeacherSideBar = () => {
                             title="Students"
                             to="/teacher/students"
                             icon={<PeopleOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
 
                         <Item
                             title="Orders"
                             to="/teacher/orders"
                             icon={<ReceiptOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
 
                         <Item
                             title="Questions"
                             to="/teacher/questions"
                             icon={<QuizIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
 
                         <Typography
@@ -234,19 +225,17 @@ const TeacherSideBar = () => {
                             title="Settings"
                             to="/teacher/settings"
                             icon={<SettingsIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
                         />
 
-                        <div onClick={logoutHandler}>
-                            <Item
-                                title="Logout"
-                                to="/"
-                                icon={<ExitToAppIcon />}
-                                selected={selected}
-                                setSelected={setSelected}
-                            />
-                        </div>
+                        <MenuItem
+                            icon={<ExitToAppIcon />}
+                            onClick={logoutHandler}
+                            style={{ cursor: "pointer" }}
+                        >
+                            <Typography className="!text-[16px] !font-Poppins">
+                                Logout
+                            </Typography>
+                        </MenuItem>
                     </Box>
                 </Menu>
             </ProSidebar>

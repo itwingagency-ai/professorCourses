@@ -16,7 +16,7 @@
 //             isLoading ? (
 //                 <Loader />
 //             ) : (
-//                 console.log(analyticsData),
+
 //                 <div className={`${isDashboard ? "h-[30vh]" : "h-screen"}`} >
 //                     <div className={isDashboard ? "mt-[0px] pl-[40px] mb-2" : "mt-[50px] ml-[50px]"}>
 //                         <h1 className={`${styles.title} ${isDashboard && '!text-[20px]'} px-5 !text-start`}>
@@ -99,7 +99,7 @@ export default function OrdersAnalytics({ isDashboard }: Props) {
                 toast.error(errorMessage.data.message);
             }
         }
-        console.log("Analytics Data:", analyticsData);
+
     }, [data, error]); // Include error in dependency array
     const mockdata = [
         {

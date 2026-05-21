@@ -5,7 +5,7 @@
 import React, { FC } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import avatarIcon from "../../../public/assests/avatar.png";
 import {
   AiOutlineUser,
@@ -25,12 +25,13 @@ type Props = {
 
 const StudentSidebar: FC<Props> = ({ user }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const [logoutApi] = useLogOutMutation();
 
   const logOutHandler = async () => {
     await logoutApi({}).unwrap().catch(() => {});
     await signOut({ redirect: false });
-    window.location.reload();
+    router.replace("/");
   };
 
   const userAvatar = user?.avatar?.url || avatarIcon;

@@ -27,7 +27,7 @@ const CourseContent: FC<Props> = ({
     handleSubmit: handleCourseSubmit,
 }) => {
 
-    console.log(courseContentData);
+
     // State to track whether each section is collapsed or expanded
     const [isCollapsed, setIsCollapsed] = useState(
         Array(courseContentData.length).fill(false) // Initialize an array of booleans, one for each section
@@ -64,7 +64,7 @@ const CourseContent: FC<Props> = ({
 
     // Handles adding new content, ensuring previous fields are filled
     const newContentHandler = (item: any) => {
-        //console.log(courseContentData);
+
         // Check if the current fields are filled
         if (item.title === "" || item.description === "" || item.videoUrl === "" || item.links[0].title === "") {
             toast.error("Please fill all the fields"); // Show error toast if any field is empty

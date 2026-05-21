@@ -1,6 +1,13 @@
 require("dotenv").config();
 import express, { NextFunction, Request, Response } from "express";
 export const app = express();
+
+// Trust the first proxy hop (Docker / nginx).
+// Required for express-rate-limit to read the real client IP from
+// X-Forwarded-For. Without this every request looks like it comes from
+// the proxy IP and all accounts share one rate-limit bucket.
+app.set("trust proxy", 1);
+
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { ErrorMiddleware } from "./middleware/error";
@@ -24,6 +31,9 @@ const allowedOrigins = [
   process.env.ORIGIN,
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  // Next.js dev server falls back to :3001 when :3000 is already in use
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
 ].filter(Boolean);
 
 app.use(
@@ -50,12 +60,14 @@ app.use("/api/v1/student", studentRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/teacher", teacherRouter);
 //testing Comment APi
-app.get("/test", (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).json({
-    Success: true,
-    message: " Api is working",
+if (process.env.NODE_ENV !== "production") {
+  app.get("/test", (req: Request, res: Response, next: NextFunction) => {
+    res.status(200).json({
+      Success: true,
+      message: " Api is working",
+    });
   });
-});
+}
 
 // Unknwon route testing
 app.all("*", (req: Request, res: Response, next: NextFunction) => {

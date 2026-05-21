@@ -48,8 +48,7 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
                 toast.success("Login Successfully!");
             }
         }
-        // console.log(data);
-        // console.log(user);
+
         // if (data === null ) {
         //     setLogout(true);
         //     toast.success(" setlougt true is called");
@@ -61,7 +60,7 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
                 const errorData = error as any;
                 toast.error(errorData.data.message);
             } else {
-                console.log("An error occurred:", error);
+                if (process.env.NODE_ENV === "development") console.log("An error occurred:", error);
             }
         }
     }, [error]);
@@ -70,13 +69,17 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
     // suggestion from inspect elemement
     useEffect(() => {
         if (typeof window !== "undefined") {
-            window.addEventListener("scroll", () => {
+            const handleScroll = () => {
                 if (window.scrollY > 80) {
                     setActive(true);
                 } else {
                     setActive(false);
                 }
-            });
+            };
+            window.addEventListener("scroll", handleScroll);
+            return () => {
+                window.removeEventListener("scroll", handleScroll);
+            };
         }
     }, []);
     const handleClose = (e: any) => {

@@ -15,7 +15,7 @@ const invalidateCourseCache = async (courseId?: string) => {
   await redis.del("allCourses");
   await redis.del("public:publishedCourses");
   if (courseId) {
-    await redis.del(courseId);
+    // The course detail cache key is always prefixed as `public:course:${courseId}`
     await redis.del(`public:course:${courseId}`);
   }
 
@@ -160,10 +160,18 @@ export const createTeacherCourse = CatchAsyncError(
           process.env.CLOUD_API_KEY &&
           process.env.CLOUD_SECRET_KEY
         ) {
-          const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
-            folder: "courses",
-          });
-          data.thumbnail = { public_id: myCloud.public_id, url: myCloud.secure_url };
+          try {
+            const myCloud = await cloudinary.v2.uploader.upload(thumbnail, {
+              folder: "courses",
+            });
+            data.thumbnail = { public_id: myCloud.public_id, url: myCloud.secure_url };
+          } catch (cloudinaryErr) {
+            console.error("Cloudinary upload failed, falling back to placeholder:", cloudinaryErr);
+            data.thumbnail = {
+              public_id: "placeholder",
+              url: "https://res.cloudinary.com/dmnwypzze/image/upload/v1698206512/course_placeholder.jpg",
+            };
+          }
         } else {
           data.thumbnail = {
             public_id: "placeholder",
@@ -195,6 +203,7 @@ export const createTeacherCourse = CatchAsyncError(
         course,
       });
     } catch (error: any) {
+      console.error("Course Creation Error:", error);
       return next(new ErrorHandler(error.message, 500));
     }
   }
@@ -298,7 +307,7 @@ export const deleteTeacherCourse = CatchAsyncError(
         return next(new ErrorHandler("Course not found", 404));
       }
 
-      if (!isAdmin && course.teacherId !== teacherId) {
+      if (!isAdmin && String(course.teacherId) !== String(teacherId)) {
         return next(new ErrorHandler("You can only delete your own courses", 403));
       }
 
@@ -333,7 +342,7 @@ export const getTeacherCourseStudents = CatchAsyncError(
         return next(new ErrorHandler("Course not found", 404));
       }
 
-      if (!isAdmin && course.teacherId !== teacherId) {
+      if (!isAdmin && String(course.teacherId) !== String(teacherId)) {
         return next(new ErrorHandler("You can only view students of your own courses", 403));
       }
 

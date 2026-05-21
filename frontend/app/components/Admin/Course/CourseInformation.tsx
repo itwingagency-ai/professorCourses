@@ -22,7 +22,7 @@ const CourseInformation: FC<Props> = ({ courseInfo, setCourseInfo, active, setAc
     // useeffect for setting the categories
     useEffect(() => {
         if (data) {
-            // console.log(data);
+
             setCategories(data?.layout?.categories);
         }
     }, [data])

@@ -123,8 +123,11 @@ export const authApi = apiSlice.injectEndpoints({
         } catch (error: any) {
           console.log("Logout API error ignored, clearing local auth anyway:", error);
         } finally {
+          // NOTE: Do NOT call apiSlice.util.resetApiState() here.
+          // Resetting the entire RTK Query cache nukes the loadUser subscription,
+          // causing it to re-fire on every navigation. If the backend is slow,
+          // UserLoggedOut() fires mid-navigation and role guards redirect to "/".
           dispatch(UserLoggedOut());
-          dispatch(apiSlice.util.resetApiState());
         }
       },
     }),
