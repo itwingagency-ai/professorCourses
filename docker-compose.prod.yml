@@ -3,8 +3,7 @@ services:
     image: mongo:7
     container_name: lms_mongo_prod
     restart: unless-stopped
-    ports:
-      - "27017:27017"
+    # No host port — only accessible within lms_prod_network
     volumes:
       - lms_mongo_prod_data:/data/db
     networks:
@@ -14,8 +13,7 @@ services:
     image: redis:7-alpine
     container_name: lms_redis_prod
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    # No host port — only accessible within lms_prod_network
     networks:
       - lms_prod_network
 
@@ -25,8 +23,9 @@ services:
       dockerfile: Dockerfile.prod
     container_name: lms_backend_prod
     restart: unless-stopped
+    # 8010 chosen to avoid conflict with other projects on this VPS
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8010:8000"
     env_file:
       - ./backend/.env.docker
     depends_on:
@@ -41,8 +40,9 @@ services:
       dockerfile: Dockerfile.prod
     container_name: lms_frontend_prod
     restart: unless-stopped
+    # 3010 chosen to avoid conflict with other projects on this VPS
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3010:3000"
     env_file:
       - ./frontend/.env.docker
     depends_on:
