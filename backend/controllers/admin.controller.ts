@@ -5,13 +5,22 @@ import userModel from "../models/user.model";
 import CourseModel from "../models/course.model";
 import OrderModel from "../models/order.model";
 import NotificationModel from "../models/notification.model";
+import AdminAuditLogModel from "../models/auditLog.model";
 
 // get admin dashboard stats
 export const getAdminDashboardStats = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const totalUsers = await userModel.countDocuments();
+      const totalStudents = await userModel.countDocuments({ role: "student" });
+      const totalTeachers = await userModel.countDocuments({ role: "teacher" });
+      
       const totalCourses = await CourseModel.countDocuments();
+      const pendingCourses = await CourseModel.countDocuments({ status: "pending" });
+      const publishedCourses = await CourseModel.countDocuments({ status: "published" });
+      const rejectedCourses = await CourseModel.countDocuments({ status: "rejected" });
+      const archivedCourses = await CourseModel.countDocuments({ status: "archived" });
+      
       const totalOrders = await OrderModel.countDocuments();
 
       // Aggregate revenue
@@ -37,7 +46,13 @@ export const getAdminDashboardStats = CatchAsyncError(
         success: true,
         stats: {
           totalUsers,
+          totalStudents,
+          totalTeachers,
           totalCourses,
+          pendingCourses,
+          publishedCourses,
+          rejectedCourses,
+          archivedCourses,
           totalOrders,
           totalRevenue,
           freeEnrollments,
@@ -130,6 +145,22 @@ export const getAdminOrderById = CatchAsyncError(
         order,
         user,
         course,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
+// get all audit logs
+export const getAuditLogs = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const logs = await AdminAuditLogModel.find().sort({ createdAt: -1 }).limit(100);
+      
+      res.status(200).json({
+        success: true,
+        logs,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));

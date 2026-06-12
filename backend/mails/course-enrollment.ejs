@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h1 { color: #2d3748; }
+    .footer { font-size: 0.9em; color: #718096; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>New Student Enrollment!</h1>
+    <p>Hello <strong><%= teacherName %></strong>,</p>
+    <p>Good news! A new student, <strong><%= studentName %></strong>, has just enrolled in your course <strong>"<%= courseName %>"</strong>.</p>
+    <p>Log in to your dashboard to view your new students and engage with them.</p>
+    <div class="footer">
+      <p>Thank you for teaching with us!</p>
+    </div>
+  </div>
+</body>
+</html>

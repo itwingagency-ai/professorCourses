@@ -4,6 +4,7 @@ import ErrorHandler from "../utils/ErroHandler";
 import StudentProgressModel from "../models/studentProgress.model";
 import OrderModel from "../models/order.model";
 import CourseModel from "../models/course.model";
+import { generateCertificate } from "./certificate.controller";
 
 // 1. Get Student Dashboard
 export const getStudentDashboard = CatchAsyncError(
@@ -234,6 +235,10 @@ export const markLessonComplete = CatchAsyncError(
         const percent = Math.round((progress.completedLessons.length / totalLessons) * 100);
         progress.progressPercentage = percent > 100 ? 100 : percent;
         await progress.save();
+
+        if (progress.progressPercentage === 100 && course.isCertificateEnabled && user && user._id) {
+          await generateCertificate(user._id as string, courseId as string);
+        }
       }
 
       res.status(200).json({

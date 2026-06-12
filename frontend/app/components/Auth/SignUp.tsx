@@ -1,70 +1,48 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 import React, { FC, useEffect, useState } from 'react';
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { AiFillGithub, AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
-import { FcGoogle } from 'react-icons/fc';
+import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import { MdEmail } from 'react-icons/md';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { MdPerson } from 'react-icons/md';
+import { HiExclamationCircle } from 'react-icons/hi';
 import { motion } from "framer-motion";
 import { styles } from '../../../app/styles/style';
-import Image from 'next/image';
 import { useRegisterMutation } from '@/redux/features/auth/authApi';
 import toast from 'react-hot-toast';
 
 type Props = {
   setRoute: (route: string) => void;
-
 };
 
 const Schema = Yup.object().shape({
-  name: Yup.string().required("Please enter your name"),
-  email: Yup.string().email("Invalid email!").required("Please enter your email"),
-  password: Yup.string().required("Please enter your password").min(6),
+  name: Yup.string().min(2, "Name must be at least 2 characters").required("Full name is required"),
+  email: Yup.string().email("Please enter a valid email").required("Email is required"),
+  password: Yup.string().required("Password is required").min(6, "Must be at least 6 characters"),
 });
 
 const SignUP: FC<Props> = ({ setRoute }) => {
   const [show, setShow] = useState(false);
-  // importing our hooks, This hook is initialized when the SignUp component first renders.
   const [register, { isError, error, data, isSuccess, isLoading }] = useRegisterMutation();
-  // adjusting padding right prblem on each time model is open
+
   useEffect(() => {
-    const openModal = () => {
-      if (!document.body.style.paddingRight) {
-        document.body.style.paddingRight = "23px";
-      }
-      document.body.style.overflow = "hidden";
-    };
-
-    const closeModal = () => {
-      document.body.style.paddingRight = "";
-      document.body.style.overflow = "";
-    };
-
-    openModal();
-
-    return () => {
-      closeModal();
-    };
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
   }, []);
+
   useEffect(() => {
     if (isSuccess) {
-      const message = `Registration successful! Check console for OTP.`;
-      toast.success(message);
-      
-      // Console log the OTP returned from backend
-      if (data?.activationCode) {
-        console.log("====================================");
-        console.log("🚀 [DEV ONLY] YOUR OTP IS:", data.activationCode);
-        console.log("====================================");
+      toast.success("Account created! Please check your email for the OTP.");
+      if ((data as any)?.activationCode) {
+        console.log("════════════════════════════════");
+        console.log("🚀 [DEV ONLY] OTP:", (data as any).activationCode);
+        console.log("════════════════════════════════");
       }
-      
-      setRoute("Verification"); // Open OTP popup
+      setRoute("Verification");
     }
     if (error) {
       if ("data" in error) {
@@ -78,207 +56,171 @@ const SignUP: FC<Props> = ({ setRoute }) => {
     initialValues: { name: "", email: "", password: "" },
     validationSchema: Schema,
     onSubmit: async ({ name, email, password }) => {
-      //setRoute("Verification")
-      const data = {
-        name, email, password
-      };
-      // calling our register Api
-      await register(data);
+      await register({ name, email, password });
     },
   });
 
   const { errors, touched, values, handleChange, handleSubmit } = formik;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl"
-      >
-        {/* Animated bouncing logo */}
-        <motion.div
-          className="w-20 h-20 mx-auto mb-6 rounded-full bg-indigo-600 flex items-center justify-center"
-          initial={{ y: -100, opacity: 0 }}
-          animate={{
-            y: [0, -20, 0],
-            opacity: 1,
-            transition: {
-              y: {
-                repeat: Infinity,
-                duration: 2,
-                ease: "easeInOut"
-              },
-              opacity: { duration: 0.5 }
-            }
-          }}
-        >
-          {/* Option 1: Using Next.js Image component */}
-          <Image
-            src={require("../../../public/assests/client-3.jpg")} // Add your logo path here
-            alt="3S Logo"
-            width={80}
-            height={80}
-            className="rounded-full"
-          />
-        </motion.div>
-
-        <h2 className={`${styles.title}`}>
-          Register to 3S Consultant
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="w-full"
+    >
+      {/* Brand Header */}
+      <div className="text-center mb-6">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primaryDark flex items-center justify-center shadow-lg shadow-primary/30">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-Poppins">
+          Create your account
         </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-Inter">
+          Join thousands of learners on 3S Consultant
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="name" className={`${styles.label}`}>
-              User Name
-            </label>
-            <div className="relative">
-              <input
-                id="name"
-                type="text"
-                name="name"
-                value={values.name}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-3 py-2 border ${errors.name && touched.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 text-black dark:text-white`}
-                placeholder="John Doe"
-                style={{ minHeight: '40px' }}
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MdPerson className="h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-            {errors.name && touched.name && (
-              <p className="mt-1 text-xs text-red-500">{errors.name}</p>
-            )}
+      {/* Error Banner */}
+      {isError && error && "data" in error && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 p-3 mb-5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-lg font-Inter"
+        >
+          <HiExclamationCircle className="text-lg flex-shrink-0" />
+          <span>{(error as any).data?.message || "Registration failed"}</span>
+        </motion.div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name Field */}
+        <div>
+          <label htmlFor="signup-name" className={styles.label}>Full Name</label>
+          <div className="relative">
+            <MdPerson className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            <input
+              id="signup-name"
+              type="text"
+              name="name"
+              value={values.name}
+              onChange={handleChange}
+              className={`${styles.input} pl-10 ${errors.name && touched.name ? 'border-red-400 dark:border-red-500 focus:ring-red-300/40 focus:border-red-400' : ''}`}
+              placeholder="John Doe"
+            />
           </div>
-          <div>
-            <label htmlFor="email" className={`${styles.label}`}>
-              Email Address
-            </label>
-            <div className="relative flex items-center">
-              <input
-                id="email"
-                type="email"
-                name="email"
-                value={values.email}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-3 py-2 border ${errors.email && touched.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 text-black dark:text-white`}
-                placeholder="Enter your email"
-                style={{ minHeight: '40px' }}
-              />
-              <div className="absolute left-0 pl-3 pointer-events-none">
-                <MdEmail className="h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-            {errors.email && touched.email && (
-              <p className="mt-1 text-xs text-red-500">{errors.email}</p>
-            )}
+          {errors.name && touched.name && (
+            <p className={styles.errorText}>
+              <HiExclamationCircle className="text-sm" />
+              {errors.name}
+            </p>
+          )}
+        </div>
+
+        {/* Email Field */}
+        <div>
+          <label htmlFor="signup-email" className={styles.label}>Email Address</label>
+          <div className="relative">
+            <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            <input
+              id="signup-email"
+              type="email"
+              name="email"
+              value={values.email}
+              onChange={handleChange}
+              className={`${styles.input} pl-10 ${errors.email && touched.email ? 'border-red-400 dark:border-red-500 focus:ring-red-300/40 focus:border-red-400' : ''}`}
+              placeholder="your@email.com"
+            />
           </div>
+          {errors.email && touched.email && (
+            <p className={styles.errorText}>
+              <HiExclamationCircle className="text-sm" />
+              {errors.email}
+            </p>
+          )}
+        </div>
 
-          <div>
-            <label htmlFor="password" className={`${styles.label}`}>
-              Password
-            </label>
-            <div className="relative">
-              {/* Password icon container */}
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                {/* You can import and use a password icon here, for example: */}
-                <RiLockPasswordLine className="h-5 w-5 text-gray-400" />
-              </div>
-
-              {/* Password input */}
-              <input
-                id="password"
-                type={show ? "text" : "password"}
-                name="password"
-                value={values.password}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-10 py-2 border ${errors.password && touched.password ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 text-black dark:text-white`}
-                placeholder="Enter your password"
-              />
-
-              {/* Show/Hide password icon */}
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShow(!show)}
-                  className="focus:outline-none"
-                >
-                  {show ? (
-                    <AiOutlineEyeInvisible className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <AiOutlineEye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-            {errors.password && touched.password && (
-              <p className="mt-1 text-xs text-red-500">{errors.password}</p>
-            )}
+        {/* Password Field */}
+        <div>
+          <label htmlFor="signup-password" className={styles.label}>Password</label>
+          <div className="relative">
+            <RiLockPasswordLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            <input
+              id="signup-password"
+              type={show ? "text" : "password"}
+              name="password"
+              value={values.password}
+              onChange={handleChange}
+              className={`${styles.input} pl-10 pr-10 ${errors.password && touched.password ? 'border-red-400 dark:border-red-500 focus:ring-red-300/40 focus:border-red-400' : ''}`}
+              placeholder="Min 6 characters"
+            />
+            <button
+              type="button"
+              onClick={() => setShow(!show)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              aria-label={show ? "Hide password" : "Show password"}
+            >
+              {show ? <AiOutlineEyeInvisible size={18} /> : <AiOutlineEye size={18} />}
+            </button>
           </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`${styles.button} shadow-sm text-sm font-medium text-white bg-indigo-600 
-            hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
-            focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
-                Signing up...
-              </div>
-            ) : (
-              'Sign Up'
-            )}
-          </button>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800  text-black dark:text-white">OR</span>
-              </div>
-            </div>
-            {/* <div className="mt-6 flex justify-center space-x-6">
-              <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
-                <FcGoogle size={20} />
-              </button>
-              <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
-                <AiFillGithub size={20} className="text-gray-800 dark:text-white" />
-              </button>
-            </div> */}
-            <h5 className=" text-center pt-4 font-Poppins text-[14px] text-black dark:text-white ">
-              Alredy have an Accounts? {" "}
-              <span className="text-[#2190ff] pl-1 cursor-pointer "
-                onClick={() => setRoute("Login")}>
-                Sign in
+          {errors.password && touched.password && (
+            <p className={styles.errorText}>
+              <HiExclamationCircle className="text-sm" />
+              {errors.password}
+            </p>
+          )}
+          {values.password && !errors.password && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <div className={`h-1 flex-1 rounded-full transition-colors ${values.password.length >= 8 ? 'bg-green-400' : 'bg-primary'}`} />
+              <div className={`h-1 flex-1 rounded-full transition-colors ${values.password.length >= 10 ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
+              <div className={`h-1 flex-1 rounded-full transition-colors ${values.password.length >= 12 ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
+              <span className="text-xs text-gray-400 ml-1">
+                {values.password.length >= 12 ? 'Strong' : values.password.length >= 8 ? 'Good' : 'Weak'}
               </span>
-            </h5>
-          </div>
-        
-        {/* Optional: Add loading overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg" style={{ minWidth: '250px' }}> {/* Added minWidth */}
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 border-t-2 border-b-2 border-indigo-600 dark:border-indigo-400 rounded-full animate-spin"></div>
-                <p className="text-black dark:text-white whitespace-nowrap">Creating your account...</p> {/* Added whitespace-nowrap */}
-              </div>
             </div>
-          </div>
-        )}
-      </motion.div>
-    </div>
+          )}
+        </div>
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`${styles.button} mt-2 ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+        >
+          {isLoading ? (
+            <>
+              <div className={styles.loadingSpinner} />
+              Creating account...
+            </>
+          ) : 'Create Account'}
+        </button>
+      </form>
+
+      {/* Divider */}
+      <div className="relative mt-5 mb-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200 dark:border-white/10" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="px-3 bg-white dark:bg-gray-800 text-gray-400 font-Inter">
+            Already have an account?
+          </span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setRoute("Login")}
+        className="w-full py-2.5 text-sm font-semibold text-primary hover:text-primaryDark border border-primary/30 hover:border-primary rounded-lg transition-all duration-200 font-Inter"
+      >
+        Sign in instead
+      </button>
+    </motion.div>
   );
 };
-// Optional: Add loading spinner component
-const LoadingSpinner = () => (
-  <div className="w-5 h-5 border-t-2 border-b-2 border-indigo-600 rounded-full animate-spin"></div>
-);
+
 export default SignUP;

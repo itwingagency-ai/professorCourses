@@ -32,6 +32,12 @@ export const adminApi = apiSlice.injectEndpoints({
         method: "GET",
       }),
     }),
+    getAdminAuditLogs: builder.query<any, void>({
+      query: () => ({
+        url: "admin/audit-logs",
+        method: "GET",
+      }),
+    }),
   }),
 });
 
@@ -41,4 +47,5 @@ export const {
   useGetAdminUserOrdersQuery,
   useGetAdminCourseStudentsQuery,
   useGetAdminOrderByIdQuery,
+  useGetAdminAuditLogsQuery,
 } = adminApi;

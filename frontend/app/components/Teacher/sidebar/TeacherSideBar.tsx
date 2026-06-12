@@ -28,6 +28,9 @@ import { useTheme } from "next-themes";
 import { Box, IconButton, Typography } from "@mui/material";
 import { useLogOutMutation } from "@/redux/features/auth/authApi";
 import { signOut } from "next-auth/react";
+import PersonIcon from "@mui/icons-material/Person";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import StarIcon from "@mui/icons-material/Star";
 
 interface itemProps {
     title: string;
@@ -187,6 +190,18 @@ const TeacherSideBar = () => {
                             icon={<VideoCallIcon />}
                         />
 
+                        <Item
+                            title="Quizzes"
+                            to="/teacher/quizzes"
+                            icon={<QuizIcon />}
+                        />
+
+                        <Item
+                            title="Assignments"
+                            to="/teacher/assignments"
+                            icon={<ReceiptOutlinedIcon />}
+                        />
+
                         <Typography
                             variant="h5"
                             sx={{ m: "15px 0 5px 20px" }}
@@ -208,9 +223,21 @@ const TeacherSideBar = () => {
                         />
 
                         <Item
+                            title="Earnings (Soon)"
+                            to="/teacher/earnings"
+                            icon={<AttachMoneyIcon />}
+                        />
+
+                        <Item
                             title="Questions"
                             to="/teacher/questions"
                             icon={<QuizIcon />}
+                        />
+
+                        <Item
+                            title="Reviews"
+                            to="/teacher/reviews"
+                            icon={<StarIcon />}
                         />
 
                         <Typography
@@ -220,6 +247,12 @@ const TeacherSideBar = () => {
                         >
                             {!isCollapsed && "Extras"}
                         </Typography>
+
+                        <Item
+                            title="Profile"
+                            to="/teacher/profile"
+                            icon={<PersonIcon />}
+                        />
 
                         <Item
                             title="Settings"

@@ -38,7 +38,10 @@ const AllInvoices: FC<Props> = ({ isDashboard }) => {
           userName: user?.name,
           userEmail: user?.email,
           title: course?.name,
-          price: "$" + course?.price,
+          price: course?.price === 0 ? "Free" : ("$" + (course?.price || 0)),
+          enrollmentStatus: item.status || "active",
+          enrollmentType: item.enrollmentType || "free",
+          enrolledAt: item.enrolledAt || item.createdAt,
         }
       });
       setOrderData(temp);
@@ -54,14 +57,51 @@ const AllInvoices: FC<Props> = ({ isDashboard }) => {
         { field: "userEmail", headerName: "Email", flex: 1 },
         { field: "title", headerName: "Course Title", flex: 1 },
       ]),
-    { field: "price", headerName: "Price", flex: 0.5 },
+    { field: "price", headerName: "Price", flex: 0.4 },
+    {
+      field: "enrollmentStatus",
+      headerName: "Status",
+      flex: 0.4,
+      renderCell: (params: any) => {
+        const status = params.row.enrollmentStatus;
+        let colorClass = "bg-green-500/10 text-green-600 border border-green-500/20";
+        if (status === "completed") colorClass = "bg-blue-500/10 text-blue-600 border border-blue-500/20";
+        else if (status === "cancelled") colorClass = "bg-red-500/10 text-red-600 border border-red-500/20";
+        return (
+          <div className="flex h-full items-center">
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
+              {status || "active"}
+            </span>
+          </div>
+        );
+      }
+    },
     ...(isDashboard
       ? [
         {
-          field: "created_at", headerName: "Created At", flex: 0.5
+          field: "created_at", headerName: "Enrolled", flex: 0.5
         },
       ]
       : [
+        {
+          field: "enrollmentType",
+          headerName: "Type",
+          flex: 0.3,
+          renderCell: (params: any) => {
+            const t = params.row.enrollmentType;
+            return (
+              <div className="flex h-full items-center">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                  t === "free"
+                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                    : "bg-purple-500/10 text-purple-600 border border-purple-500/20"
+                }`}>
+                  {t || "free"}
+                </span>
+              </div>
+            );
+          }
+        },
         {
           field: "email",
           headerName: "Email",
@@ -105,7 +145,9 @@ const AllInvoices: FC<Props> = ({ isDashboard }) => {
       userEmail: item.userEmail,
       title: item.title,
       price: item.price,
-      created_at: format(item.createdAt),
+      enrollmentStatus: item.enrollmentStatus,
+      enrollmentType: item.enrollmentType,
+      created_at: format(item.enrolledAt || item.createdAt),
     });
   });
 
@@ -137,8 +179,14 @@ const AllInvoices: FC<Props> = ({ isDashboard }) => {
           <Loader />
         ) : (
           <Box m={isDashboard ? "0" : "40px"} >
-            <Box m={isDashboard ? "0" : "40px 0 0 0"}
-              height={isDashboard ? "35vh" : "90vh"}
+            {!isDashboard && (
+                <div className="mb-4 bg-orange-500/10 border-l-4 border-orange-500 p-4 rounded">
+                    <h3 className="text-orange-500 font-bold">Payments Coming Soon</h3>
+                    <p className="text-gray-500 dark:text-gray-300 text-sm">Stripe integration and advanced invoicing are planned for a future update. Current enrollments are displayed below.</p>
+                </div>
+            )}
+            <Box m={isDashboard ? "0" : "0"}
+              height={isDashboard ? "35vh" : "80vh"}
               overflow={"hidden"}
               sx={
                 {
@@ -191,7 +239,13 @@ const AllInvoices: FC<Props> = ({ isDashboard }) => {
                 checkboxSelection={isDashboard ? false : true}
                 rows={rows}
                 columns={columns}
-               // components={isDashboard ? {} : { Toolbar: GridToolbar }}
+                slots={isDashboard ? {} : { toolbar: GridToolbar }}
+                slotProps={isDashboard ? {} : {
+                    toolbar: {
+                        showQuickFilter: true,
+                        quickFilterProps: { debounceMs: 500 },
+                    },
+                }}
               />
             </Box>
           </Box>

@@ -14,9 +14,11 @@ export default function Protected({ children }: ProtectedProps) {
   const router = useRouter();
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
+  const isBlocked = user?.status === "blocked" || user?.status === "suspended";
+
   useEffect(() => {
     if (authChecked) {
-      if (!user) {
+      if (!user || isBlocked) {
         router.replace("/");
       } else if (user.role === "admin") {
         router.replace("/admin");
@@ -25,13 +27,13 @@ export default function Protected({ children }: ProtectedProps) {
         router.replace("/teacher");
       }
     }
-  }, [authChecked, user, router]);
+  }, [authChecked, user, isBlocked, router]);
 
   if (!authChecked) {
     return <Loader />;
   }
 
-  if (!user || user.role === "admin" || user.role === "teacher") {
+  if (!user || isBlocked || user.role === "admin" || user.role === "teacher") {
     return null;
   }
 

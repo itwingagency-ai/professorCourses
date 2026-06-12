@@ -83,6 +83,37 @@ const CoursePreview: FC<Props> = ({ active, setActive, courseData, handleCourseC
         <p className="pb-1  text-black dark:text-white">. Full Life Time Access</p>
         <p className="pb-1  text-black dark:text-white">. Certificate of Completion</p>
         <p className="pb-1  text-black dark:text-white">. Premimum Support</p>
+
+        {/* Course Metadata Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6 p-4 rounded-xl bg-gray-500/10 border border-gray-500/20 text-black dark:text-white font-Poppins">
+          <div>
+            <span className="font-semibold text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Language</span>
+            <span className="text-sm font-medium">{courseData?.language || "English"}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Level</span>
+            <span className="text-sm font-medium">{courseData?.level || "Beginner"}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Duration</span>
+            <span className="text-sm font-medium">{courseData?.duration || "N/A"}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Featured</span>
+            <span className="text-sm font-medium">{courseData?.isFeatured ? "Yes" : "No"}</span>
+          </div>
+        </div>
+
+        {/* Tags */}
+        {courseData?.courseTags && courseData.courseTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 my-4">
+            {courseData.courseTags.map((tag: string, index: number) => (
+              <span key={index} className="px-3 py-1 bg-[#37a39a]/10 text-[#37a39a] rounded-full text-xs font-semibold">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/** Ratings */}
@@ -104,7 +135,7 @@ const CoursePreview: FC<Props> = ({ active, setActive, courseData, handleCourseC
           </h1>
         </div>
         {
-          courseData?.benefits.map((item: any, index: number) => (
+          (courseData?.whatYouWillLearn || courseData?.benefits)?.map((item: any, index: number) => (
             <div className="w-full flex 800px:items-center py-2  text-black dark:text-white" key={index}>
               <div className="w-[15px] mr-1">
                 <IoCheckmarkDoneOutline size={20} />
@@ -121,7 +152,7 @@ const CoursePreview: FC<Props> = ({ active, setActive, courseData, handleCourseC
           What are the Prerequisites for this Course?
         </h1>
         {
-          courseData?.prerequisites.map((item: any, index: number) => (
+          (courseData?.requirements || courseData?.prerequisites)?.map((item: any, index: number) => (
             <div className="w-full flex 800px:items-center py-2  text-black dark:text-white" key={index}>
               <div className="w-[15px] mr-1">
                 <IoCheckmarkDoneOutline size={20} />
@@ -132,6 +163,24 @@ const CoursePreview: FC<Props> = ({ active, setActive, courseData, handleCourseC
             </div>
           ))
         }
+        
+        {/* Target Audience */}
+        {courseData?.targetAudience && courseData.targetAudience.length > 0 && (
+          <>
+            <br />
+            <h1 className="text-[25px] font-Poppins font-[600] text-black dark:text-white">
+              Who is this course for?
+            </h1>
+            {courseData.targetAudience.map((item: any, index: number) => (
+              <div className="w-full flex 800px:items-center py-2 text-black dark:text-white" key={index}>
+                <div className="w-[15px] mr-1">
+                  <IoCheckmarkDoneOutline size={20} />
+                </div>
+                <p className="pl-2">{item.title}</p>
+              </div>
+            ))}
+          </>
+        )}
         <br />
         {/** Course Decription */}
         <div className="w-full">

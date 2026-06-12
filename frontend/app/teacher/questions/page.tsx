@@ -81,6 +81,13 @@ const TeacherQuestionsPage: FC<Props> = () => {
                           <span className="text-xs font-semibold text-[#37a39a]">{q.courseName}</span>
                           <span className="text-xs text-gray-400">›</span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">{q.contentTitle}</span>
+                          <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                            q.questionReplies?.length > 0
+                              ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-800'
+                              : 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 border border-orange-200 dark:border-orange-800'
+                          }`}>
+                            {q.questionReplies?.length > 0 ? 'Answered' : 'Unanswered'}
+                          </span>
                         </div>
                         <p className="text-black dark:text-white font-medium leading-relaxed">{q.question}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">

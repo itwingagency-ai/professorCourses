@@ -20,6 +20,9 @@ import layoutRouter from "./routes/layout.route";
 import studentRouter from "./routes/student.route";
 import adminRouter from "./routes/admin.route";
 import teacherRouter from "./routes/teacher.route";
+import quizRouter from "./routes/quiz.route";
+import assignmentRouter from "./routes/assignment.route";
+import certificateRouter from "./routes/certificate.route";
 // Body parser for using cloudinary
 app.use(express.json({ limit: "50mb" }));
 
@@ -59,6 +62,9 @@ app.use("/api/v1", layoutRouter);
 app.use("/api/v1/student", studentRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/teacher", teacherRouter);
+app.use("/api/v1/quiz", quizRouter);
+app.use("/api/v1/assignment", assignmentRouter);
+app.use("/api/v1/certificate", certificateRouter);
 //testing Comment APi
 if (process.env.NODE_ENV !== "production") {
   app.get("/test", (req: Request, res: Response, next: NextFunction) => {

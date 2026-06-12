@@ -31,10 +31,18 @@ interface ICourseData extends Document {
   videoSection: string;
   videoLength: number;
   videoPlayer: string;
-  links: ILink;
+  links: ILink[];
   suggestion: string;
   // same like comments
   questions: IComment[];
+  isFreePreview?: boolean;
+}
+
+interface IApprovalHistory {
+  status: string;
+  reason?: string;
+  changedBy: string;
+  changedAt: Date;
 }
 
 // interface Icourse
@@ -58,8 +66,20 @@ interface ICourse extends Document {
   // Teacher ownership
   createdBy?: mongoose.Types.ObjectId;
   teacherId?: string;
-  status?: 'draft' | 'pending' | 'published' | 'rejected';
+  status?: 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
   rejectionReason?: string;
+  slug?: string;
+  language?: string;
+  requirements?: { title: string }[];
+  whatYouWillLearn?: { title: string }[];
+  targetAudience?: { title: string }[];
+  courseTags?: string[];
+  duration?: string;
+  previewVideoUrl?: string;
+  isFeatured?: boolean;
+  isArchived?: boolean;
+  approvalHistory?: IApprovalHistory[];
+  isCertificateEnabled?: boolean;
 }
 
 // review Schema
@@ -97,6 +117,10 @@ const courseDataSchema = new Schema<ICourseData>({
   links: [linkSchema],
   suggestion: String,
   questions: [commentSchema],
+  isFreePreview: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 // course Schema
@@ -161,13 +185,76 @@ const courseSchema = new Schema<ICourse>({
     },
     status: {
         type: String,
-        enum: ['draft', 'pending', 'published', 'rejected'],
+        enum: ['draft', 'pending', 'published', 'rejected', 'archived'],
         default: 'pending',
     },
     rejectionReason: {
         type: String,
     },
+    slug: {
+        type: String,
+        unique: true,
+        index: true,
+    },
+    language: {
+        type: String,
+        default: "English",
+    },
+    requirements: [{ title: String }],
+    whatYouWillLearn: [{ title: String }],
+    targetAudience: [{ title: String }],
+    courseTags: [String],
+    duration: String,
+    previewVideoUrl: String,
+    isFeatured: {
+        type: Boolean,
+        default: false,
+    },
+    isArchived: {
+        type: Boolean,
+        default: false,
+    },
+    approvalHistory: [
+        {
+            status: String,
+            reason: String,
+            changedBy: String,
+            changedAt: {
+                type: Date,
+                default: Date.now,
+            },
+        },
+    ],
+    isCertificateEnabled: {
+        type: Boolean,
+        default: true,
+    },
 }, {timestamps:true});
+
+// Pre-save hook to generate unique slug from name
+courseSchema.pre<ICourse>("save", async function (next) {
+  if (!this.slug) {
+    const baseSlug = this.name
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w\-]+/g, "")
+      .replace(/\-\-+/g, "-")
+      .replace(/^-+/, "")
+      .replace(/-+$/, "") || "course";
+
+    let slug = baseSlug;
+    let counter = 1;
+    const Course = this.constructor as mongoose.Model<ICourse>;
+    while (await Course.findOne({ slug })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    this.slug = slug;
+  }
+  next();
+});
 
 const CourseModel: Model<ICourse> = mongoose.model("Course", courseSchema);
 

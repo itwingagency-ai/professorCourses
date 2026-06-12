@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h1 { color: #e53e3e; }
+    .reason-box { background: #fed7d7; color: #9b2c2c; padding: 15px; border-radius: 5px; margin: 20px 0; font-style: italic; }
+    .footer { font-size: 0.9em; color: #718096; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Action Required: Course Update Needed</h1>
+    <p>Hello <strong><%= teacherName %></strong>,</p>
+    <p>Thank you for submitting your course <strong>"<%= courseName %>"</strong>. However, our review team has requested some changes before it can be published.</p>
+    <div class="reason-box">
+      <strong>Reviewer Feedback:</strong><br/>
+      <%= rejectionReason %>
+    </div>
+    <p>Please log in to your dashboard, make the necessary updates, and resubmit your course for approval.</p>
+    <div class="footer">
+      <p>If you have any questions, feel free to contact support.</p>
+    </div>
+  </div>
+</body>
+</html>

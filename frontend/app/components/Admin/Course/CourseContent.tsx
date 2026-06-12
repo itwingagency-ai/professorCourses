@@ -273,6 +273,23 @@ const CourseContent: FC<Props> = ({
                                                     }}
                                                 />
                                             </div>
+                                            {/* Free Preview Toggle */}
+                                            <div className="my-3 flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`free-preview-${index}`}
+                                                    checked={item.isFreePreview || false}
+                                                    onChange={(e: any) => {
+                                                        const updatedData = [...courseContentData];
+                                                        updatedData[index] = { ...updatedData[index], isFreePreview: e.target.checked };
+                                                        setCourseContentData(updatedData);
+                                                    }}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                                <label htmlFor={`free-preview-${index}`} className={`${styles.label} cursor-pointer select-none`}>
+                                                    Free Lesson Preview (unlocked for all users)
+                                                </label>
+                                            </div>
                                             {/* Video description textarea */}
                                             <div className="my-3">
                                                 <label className={`${styles.label}`}>

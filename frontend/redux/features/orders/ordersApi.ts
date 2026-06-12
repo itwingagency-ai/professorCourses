@@ -3,6 +3,7 @@ import { apiSlice } from "../api/apiSlice";
 
 export const ordersApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // Enroll in a course (free or future paid)
     createOrder: builder.mutation({
       query: (data: { courseId: string; payment_info?: any }) => ({
         url: "create-order",
@@ -12,6 +13,31 @@ export const ordersApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["User", "Courses", "Course"],
     }),
+
+    // Check enrollment status for a specific course
+    getEnrollmentStatus: builder.query({
+      query: (courseId: string) => ({
+        url: `enrollment-status/${courseId}`,
+        method: "GET",
+        credentials: "include" as const,
+      }),
+      providesTags: (result, error, courseId) => [
+        { type: "Course", id: courseId },
+      ],
+    }),
+
+    // Admin: update enrollment status of an order
+    updateEnrollmentStatus: builder.mutation({
+      query: ({ orderId, status }: { orderId: string; status: string }) => ({
+        url: `orders/${orderId}/status`,
+        method: "PATCH",
+        body: { status },
+        credentials: "include" as const,
+      }),
+      invalidatesTags: ["Courses"],
+    }),
+
+    // Future Stripe payment intent
     createPaymentIntent: builder.mutation({
       query: (amount: number) => ({
         url: "payment",
@@ -19,6 +45,8 @@ export const ordersApi = apiSlice.injectEndpoints({
         body: { amount },
       }),
     }),
+
+    // Admin: all orders
     getAllOrders: builder.query({
       query: () => ({
         url: "get-orders",
@@ -30,4 +58,10 @@ export const ordersApi = apiSlice.injectEndpoints({
   overrideExisting: true,
 });
 
-export const { useCreateOrderMutation, useCreatePaymentIntentMutation, useGetAllOrdersQuery } = ordersApi;
+export const {
+  useCreateOrderMutation,
+  useGetEnrollmentStatusQuery,
+  useUpdateEnrollmentStatusMutation,
+  useCreatePaymentIntentMutation,
+  useGetAllOrdersQuery,
+} = ordersApi;

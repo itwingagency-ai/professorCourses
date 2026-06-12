@@ -8,6 +8,7 @@ import NavItems from "../utils/NavItems";
 import Image from 'next/image';
 import avatar from "../../public/assests/avatar.png"
 import { ThemeSwitcher } from "../utils/ThemeSwitcher";
+import NotificationBell from "./NotificationBell";
 import { HiOutlineMenuAlt3, HiOutlineUserCircle } from 'react-icons/hi';
 import CustomModal from "../utils/CustomModal";
 import Login from "../components/Auth/Login";
@@ -116,6 +117,7 @@ const Header: FC<Props> = ({ activeItem, setOpen, route, open, setRoute }) => {
                             {
                                 user ? (
                                     <>
+                                        <NotificationBell />
                                         <Link href={"/profile"}>
                                             <Image
                                                 src={user?.avatar?.url || avatar}

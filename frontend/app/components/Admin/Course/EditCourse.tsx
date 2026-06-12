@@ -55,10 +55,16 @@ const EditCourse: FC<Props> = ({ id }) => {
                 category: editCourseData?.category,
                 demoUrl: editCourseData?.demoUrl,
                 thumbnail: editCourseData?.thumbnail,
+                language: editCourseData?.language || "English",
+                duration: editCourseData?.duration || "",
+                previewVideoUrl: editCourseData?.previewVideoUrl || "",
+                requirements: editCourseData?.requirements || [{ title: "" }],
+                whatYouWillLearn: editCourseData?.whatYouWillLearn || [{ title: "" }],
+                targetAudience: editCourseData?.targetAudience || [{ title: "" }],
             })
-            setBenefits(editCourseData?.benefits);
-            setPrerequisites(editCourseData?.prerequisites);
-            setCourseContentData(editCourseData?.courseData);
+            setBenefits(editCourseData?.benefits || [{ title: "" }]);
+            setPrerequisites(editCourseData?.prerequisites || [{ title: "" }]);
+            setCourseContentData(editCourseData?.courseData || []);
         }
     }, [editCourseData]);
 
@@ -72,6 +78,12 @@ const EditCourse: FC<Props> = ({ id }) => {
         category:"",
         demoUrl: "",
         thumbnail: "",
+        language: "English",
+        duration: "",
+        previewVideoUrl: "",
+        requirements: [{ title: "" }],
+        whatYouWillLearn: [{ title: "" }],
+        targetAudience: [{ title: "" }],
     });
     const [benefits, setBenefits] = useState([{ title: "" }]);
     const [prerequisites, setPrerequisites] = useState([{ title: "" }]);
@@ -88,6 +100,7 @@ const EditCourse: FC<Props> = ({ id }) => {
             },
         ],
         suggestion: "",
+        isFreePreview: false,
     },]);
     const [courseData, setCourseData] = useState({});
 
@@ -105,6 +118,7 @@ const EditCourse: FC<Props> = ({ id }) => {
                 url: link.url
             })),
             suggestion: courseContent.suggestion,
+            isFreePreview: (courseContent as any).isFreePreview || false,
         }));
         return {
             name: courseInfo.name,
@@ -120,6 +134,13 @@ const EditCourse: FC<Props> = ({ id }) => {
             benefits: formattedBenefits,
             prerequisites: formattedPrerequisites,
             courseData: formattedCourseContentData,
+            language: courseInfo.language,
+            duration: courseInfo.duration,
+            previewVideoUrl: courseInfo.previewVideoUrl,
+            requirements: courseInfo.requirements,
+            whatYouWillLearn: courseInfo.whatYouWillLearn,
+            targetAudience: courseInfo.targetAudience,
+            courseTags: courseInfo.tags ? courseInfo.tags.split(",").map((t: string) => t.trim()) : [],
         };
     };
 

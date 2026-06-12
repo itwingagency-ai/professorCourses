@@ -10,7 +10,7 @@ import Header from "../../components/Header";
 import Heading from "../../utils/Heading";
 import Ratings from "../../utils/Ratings";
 import { useGetSingleCourseQuery } from "@/redux/features/courses/coursesApi";
-import { useCreateOrderMutation, useCreatePaymentIntentMutation } from "@/redux/features/orders/ordersApi";
+import { useCreateOrderMutation, useCreatePaymentIntentMutation, useGetEnrollmentStatusQuery } from "@/redux/features/orders/ordersApi";
 import { apiSlice } from "@/redux/features/api/apiSlice";
 import { UserLoggedIn } from "@/redux/features/auth/authSlice";
 import { normalizeSingleCourseResponse } from "@/lib/normalizers";
@@ -27,6 +27,7 @@ type NormalizedLesson = {
   description: string;
   videoUrl?: string;
   videoLength?: number | string;
+  isFreePreview?: boolean;
 };
 
 type NormalizedCourse = {
@@ -46,6 +47,10 @@ type NormalizedCourse = {
   prerequisites: any[];
   lessons: NormalizedLesson[];
   demoUrl?: string;
+  language?: string;
+  duration?: string;
+  targetAudience?: any[];
+  courseTags?: string[];
 };
 
 const fallbackImage = "/assests/banner-img-1.png";
@@ -84,6 +89,7 @@ const normalizeCourse = (course: any): NormalizedCourse | null => {
       "Lesson details will be available after enrollment.",
     videoUrl: lesson?.videoUrl || lesson?.video?.url || lesson?.url,
     videoLength: lesson?.videoLength || lesson?.duration,
+    isFreePreview: lesson?.isFreePreview || false,
   }));
 
   return {
@@ -106,8 +112,14 @@ const normalizeCourse = (course: any): NormalizedCourse | null => {
       ? course.reviews.length
       : Number(course?.reviewsCount || 0),
     purchased: Number(course?.purchased || course?.sold || course?.enrolled || 0),
-    benefits: Array.isArray(course?.benefits) ? course.benefits : [],
-    prerequisites: Array.isArray(course?.prerequisites)
+    benefits: Array.isArray(course?.whatYouWillLearn) && course.whatYouWillLearn.length > 0 
+      ? course.whatYouWillLearn 
+      : Array.isArray(course?.benefits) 
+      ? course.benefits 
+      : [],
+    prerequisites: Array.isArray(course?.requirements) && course.requirements.length > 0
+      ? course.requirements
+      : Array.isArray(course?.prerequisites)
       ? course.prerequisites
       : [],
     lessons,
@@ -116,6 +128,10 @@ const normalizeCourse = (course: any): NormalizedCourse | null => {
       course?.demoVideo ||
       course?.demoVideoUrl ||
       course?.courseData?.[0]?.videoUrl,
+    language: course?.language || "English",
+    duration: course?.duration || "",
+    targetAudience: Array.isArray(course?.targetAudience) ? course.targetAudience : [],
+    courseTags: Array.isArray(course?.courseTags) ? course.courseTags : [],
   };
 };
 
@@ -136,6 +152,7 @@ const CourseDetailsPage: FC = () => {
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [createPaymentIntent] = useCreatePaymentIntentMutation();
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | undefined>(undefined);
 
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
@@ -150,19 +167,27 @@ const CourseDetailsPage: FC = () => {
   });
 
   const [createOrder, { isLoading: isEnrolling }] = useCreateOrderMutation();
+  const [enrollmentSuccessMsg, setEnrollmentSuccessMsg] = React.useState<string | null>(null);
 
   const course = useMemo(() => {
     return normalizeCourse(getCourseObject(data));
   }, [data]);
 
   const isPurchased = useMemo(() => {
-    if (!user?.courses || !courseId) return false;
+    if (!user?.courses || !course?.id) return false;
 
     return user.courses.some((item: any) => {
       const purchasedId = getPurchasedCourseId(item);
-      return purchasedId?.toString() === courseId?.toString();
+      return purchasedId?.toString() === course.id.toString();
     });
-  }, [user, courseId]);
+  }, [user, course]);
+
+  // Enrollment status from backend (provides enrollmentType, enrolledAt etc.)
+  const { data: enrollmentStatusData } = useGetEnrollmentStatusQuery(
+    course?.id || "",
+    { skip: !user || !course?.id }
+  );
+  const enrollmentStatus = enrollmentStatusData;
 
   const refreshCurrentUser = async () => {
     try {
@@ -200,20 +225,20 @@ const CourseDetailsPage: FC = () => {
       return;
     }
 
-    if (!courseId) {
+    if (!course?.id) {
       toast.error("Invalid course ID.");
       return;
     }
 
     if (isPurchased) {
-      router.push(`/course-access/${courseId}`);
+      router.push(`/course-access/${course.id}`);
       return;
     }
 
-    // All courses enroll directly — no Stripe required
+    // All courses enroll directly — no Stripe required for free courses
     try {
       const response: any = await createOrder({
-        courseId,
+        courseId: course.id,
         payment_info: {
           type: "free-enrollment",
           status: "success",
@@ -222,11 +247,9 @@ const CourseDetailsPage: FC = () => {
       }).unwrap();
 
       if (response?.success) {
-        if (response?.alreadyPurchased) {
-          toast.success("You are already enrolled in this course.");
-        } else {
-          toast.success(response?.message || "Course enrolled successfully!");
-        }
+        const msg = response?.message || "You have successfully enrolled in this course!";
+        toast.success(msg, { duration: 4000, icon: "🎉" });
+        setEnrollmentSuccessMsg(msg);
 
         if (response?.user) {
           dispatch(
@@ -240,7 +263,9 @@ const CourseDetailsPage: FC = () => {
         }
 
         await refetch();
-        router.push(`/course-access/${courseId}`);
+        // Brief pause so user sees the success message before redirect
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        router.push(`/course-access/${course.id}`);
         return;
       }
 
@@ -258,7 +283,7 @@ const CourseDetailsPage: FC = () => {
       ) {
         toast.success("You are already enrolled in this course.");
         await refreshCurrentUser();
-        router.push(`/course-access/${courseId}`);
+        router.push(`/course-access/${course.id}`);
         return;
       }
 
@@ -355,9 +380,26 @@ const CourseDetailsPage: FC = () => {
                     {course.level}
                   </span>
 
+                  {course.language && (
+                    <span className="px-3 py-1 rounded-full bg-[#37a39a1a] text-[#37a39a] text-[13px] font-semibold">
+                      Language: {course.language}
+                    </span>
+                  )}
+
+                  {course.duration && (
+                    <span className="px-3 py-1 rounded-full bg-[#37a39a1a] text-[#37a39a] text-[13px] font-semibold">
+                      Duration: {course.duration}
+                    </span>
+                  )}
+
                   {isPurchased && (
-                    <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-[13px] font-semibold">
-                      Enrolled
+                    <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-[13px] font-semibold flex items-center gap-1">
+                      <span>✓</span> Enrolled
+                    </span>
+                  )}
+                  {isPurchased && enrollmentStatus?.enrollmentType && (
+                    <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[13px] font-semibold capitalize">
+                      {enrollmentStatus.enrollmentType === 'free' ? '🎁 Free' : '💳 Paid'}
                     </span>
                   )}
                 </div>
@@ -365,6 +407,16 @@ const CourseDetailsPage: FC = () => {
                 <h1 className="text-[30px] 800px:text-[44px] font-Poppins font-[700] text-black dark:text-white leading-tight">
                   {course.title}
                 </h1>
+
+                {course.courseTags && course.courseTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4 mt-2">
+                    {course.courseTags.map((tag: string, index: number) => (
+                      <span key={index} className="px-2 py-0.5 bg-gray-500/10 text-gray-500 dark:text-gray-400 rounded text-xs font-medium">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <p className="text-[16px] text-gray-600 dark:text-gray-300 mt-5 leading-8">
                   {course.description}
@@ -384,12 +436,12 @@ const CourseDetailsPage: FC = () => {
                 </div>
               </div>
 
-              {course.demoUrl && (
+              {(previewVideoUrl || course.demoUrl) && (
                 <div className="mt-10 rounded-2xl overflow-hidden bg-black border border-gray-200 dark:border-[#ffffff1d]">
                   <CoursePlayer
-                    videoUrl={course.demoUrl}
+                    videoUrl={previewVideoUrl || course.demoUrl || ""}
                     title={course.title}
-                    courseId={courseId}
+                    courseId={course.id}
                     contentId=""
                   />
                 </div>
@@ -443,6 +495,26 @@ const CourseDetailsPage: FC = () => {
                 </div>
               </div>
 
+              {course.targetAudience && course.targetAudience.length > 0 && (
+                <div className="mt-10">
+                  <h2 className="text-[25px] font-Poppins font-[600] text-black dark:text-white">
+                    Who is this course for?
+                  </h2>
+
+                  <div className="space-y-3 mt-5">
+                    {course.targetAudience.map((item: any, index: number) => (
+                      <div
+                        key={item?._id || index}
+                        className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] text-black dark:text-white"
+                      >
+                        <span className="text-[#37a39a] mr-2">•</span>
+                        {item?.title || item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="mt-10">
                 <h2 className="text-[25px] font-Poppins font-[600] text-black dark:text-white">
                   Course Content Preview
@@ -455,10 +527,17 @@ const CourseDetailsPage: FC = () => {
                         key={lesson.id}
                         className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] text-black dark:text-white flex flex-col 800px:flex-row 800px:items-center 800px:justify-between gap-2"
                       >
-                        <div>
-                          <span className="text-[#37a39a] font-semibold">
-                            Lesson {index + 1}
-                          </span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#37a39a] font-semibold text-sm">
+                              Lesson {index + 1}
+                            </span>
+                            {lesson.isFreePreview && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
+                                Free Preview
+                              </span>
+                            )}
+                          </div>
                           <h3 className="font-Poppins font-[600] mt-1">
                             {lesson.title}
                           </h3>
@@ -467,13 +546,30 @@ const CourseDetailsPage: FC = () => {
                           </p>
                         </div>
 
-                        <span className="text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                          {lesson.videoLength
-                            ? `${lesson.videoLength} min`
-                            : isPurchased
-                            ? "Available"
-                            : "Preview"}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          {lesson.isFreePreview && !isPurchased && (
+                            <button
+                              onClick={() => {
+                                if (lesson.videoUrl) {
+                                  setPreviewVideoUrl(lesson.videoUrl);
+                                  window.scrollTo({ top: 350, behavior: "smooth" });
+                                } else {
+                                  toast.error("Preview video not available");
+                                }
+                              }}
+                              className="px-3 py-1 rounded text-xs font-semibold bg-[#37a39a] hover:bg-[#2e8c84] text-white cursor-pointer transition-colors shadow-sm"
+                            >
+                              Watch Preview
+                            </button>
+                          )}
+                          <span className="text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap">
+                            {lesson.videoLength
+                              ? `${lesson.videoLength} min`
+                              : isPurchased
+                              ? "Available"
+                              : "Preview"}
+                          </span>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -534,22 +630,52 @@ const CourseDetailsPage: FC = () => {
                 )}
               </div>
 
+              {/* Enrollment success banner */}
+              {enrollmentSuccessMsg && (
+                <div className="mt-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-400 text-sm flex items-center gap-2">
+                  <span className="text-lg">🎉</span>
+                  <span>{enrollmentSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Enrolled status info */}
+              {isPurchased && enrollmentStatus?.enrolledAt && (
+                <div className="mt-4 p-3 rounded-lg bg-[#37a39a]/5 border border-[#37a39a]/20 text-sm">
+                  <p className="text-[#37a39a] font-semibold">✓ You are enrolled</p>
+                  <p className="text-gray-500 dark:text-gray-400 mt-0.5">
+                    Enrolled on {new Date(enrollmentStatus.enrolledAt).toLocaleDateString('en-US', {
+                      year: 'numeric', month: 'long', day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              )}
+
               <button
                 onClick={handleMainAction}
                 disabled={isEnrolling}
-                className={`w-full mt-6 py-4 rounded-lg text-white font-semibold transition ${
+                className={`w-full mt-6 py-4 rounded-lg text-white font-semibold transition flex items-center justify-center gap-2 ${
                   isEnrolling
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#37a39a] hover:opacity-90"
+                    : isPurchased
+                    ? "bg-[#37a39a] hover:opacity-90"
+                    : "bg-[#37a39a] hover:opacity-90 shadow-lg shadow-[#37a39a]/20"
                 }`}
               >
-                {isEnrolling
-                  ? "Enrolling..."
-                  : !user
-                  ? "Login to Enroll"
-                  : isPurchased
-                  ? "Start Learning"
-                  : "Enroll Now"}
+                {isEnrolling ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Enrolling...
+                  </>
+                ) : !user ? (
+                  "Login to Enroll"
+                ) : isPurchased ? (
+                  "→ Start Learning"
+                ) : (
+                  course.price === 0 ? "🎁 Enroll for Free" : "Enroll Now"
+                )}
               </button>
 
               <div className="mt-6 space-y-4 text-gray-600 dark:text-gray-300">

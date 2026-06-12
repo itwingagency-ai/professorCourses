@@ -21,6 +21,12 @@ const DashboardPage: FC = () => {
   const { data, isLoading } = useGetStudentDashboardQuery(undefined, { refetchOnMountOrArgChange: true });
 
   const dashboardData = data?.data;
+  
+  // Find a course to continue learning (in progress)
+  const continueCourse = dashboardData?.enrolledCourses?.find((c: any) => {
+    const p = dashboardData?.progressByCourse?.[c.courseId]?.progressPercentage || 0;
+    return p > 0 && p < 100;
+  });
 
   return (
     <Protected>
@@ -62,6 +68,36 @@ const DashboardPage: FC = () => {
                 <h2 className="text-[24px] font-Poppins font-semibold text-black dark:text-white mb-6">
                   Welcome back, {user?.name}!
                 </h2>
+
+                {continueCourse && (
+                  <div className="mb-8 bg-gradient-to-r from-[#37a39a] to-[#2b857d] rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="z-10 flex-1">
+                      <span className="text-white/80 text-sm font-semibold uppercase tracking-wider mb-2 block">
+                        Continue Learning
+                      </span>
+                      <h3 className="text-2xl sm:text-3xl font-bold mb-2 line-clamp-1">
+                        {continueCourse.courseName || "Your Course"}
+                      </h3>
+                      <div className="flex items-center gap-4 mt-4 max-w-sm">
+                        <div className="flex-1 bg-black/20 rounded-full h-2">
+                          <div 
+                            className="bg-white rounded-full h-2 transition-all"
+                            style={{ width: `${dashboardData.progressByCourse[continueCourse.courseId]?.progressPercentage || 0}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium">
+                          {dashboardData.progressByCourse[continueCourse.courseId]?.progressPercentage || 0}%
+                        </span>
+                      </div>
+                    </div>
+                    <Link href={`/course-access/${continueCourse.courseId}`} className="z-10 w-full sm:w-auto">
+                      <button className="w-full sm:w-auto px-8 py-3 bg-white text-[#37a39a] hover:bg-gray-50 rounded-lg font-bold transition shadow-md whitespace-nowrap">
+                        Resume Lesson
+                      </button>
+                    </Link>
+                    <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                  </div>
+                )}
 
                 <StudentDashboardCards
                   total={dashboardData?.totalEnrolledCourses || 0}

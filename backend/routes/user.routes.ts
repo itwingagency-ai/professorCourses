@@ -13,6 +13,11 @@ import {
   updateProfilePicture,
   updateUserInfo,
   updateUserRole,
+  forgotPassword,
+  resetPassword,
+  blockUser,
+  unblockUser,
+  updateUserStatus,
 } from "../controllers/user.controller";
 import { authorizeRoles, isAuthenticated } from "../middleware/auth";
 import { activationLimiter, loginLimiter, registrationLimiter } from "../middleware/rateLimit";
@@ -43,6 +48,12 @@ userRouter.put("/update-user-info",updateAccessToken, isAuthenticated, updateUse
 userRouter.put("/update-user-password", updateAccessToken,isAuthenticated, updatePassword);
 // update avatar
 userRouter.put("/update-user-avatar", updateAccessToken,isAuthenticated, updateProfilePicture);
+
+// forgot password
+userRouter.post("/forgot-password", forgotPassword);
+// reset password
+userRouter.post("/reset-password", resetPassword);
+
 // get all users --only for admin
 userRouter.get(
   "/get-users",
@@ -60,6 +71,34 @@ userRouter.put(
   authorizeRoles("admin"),
   updateUserRole
 );
+
+// block user -- admin only
+userRouter.put(
+  "/block-user/:id",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  blockUser
+);
+
+// unblock user -- admin only
+userRouter.put(
+  "/unblock-user/:id",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  unblockUser
+);
+
+// update user status -- admin only
+userRouter.put(
+  "/update-user-status",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  updateUserStatus
+);
+
 // delete user -- admin only
 userRouter.delete(
   "/delete-user-request/:id",

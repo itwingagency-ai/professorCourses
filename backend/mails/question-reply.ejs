@@ -1,16 +1,23 @@
-<DOCTYPE html>
-    <html>
-
-    <head>
-        <title› THE3S Activation Email</title>
-            <meta http-equiv="Content-Type" content="text/html; charset-UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title> New Reply Notification</title>
-    </head>
-
-    <body>
-        <h1> hello <%= name%>,</h1>
-        <p> A new reply has been added to your question in the video <%= title%>.</p>
-        <p> please login to our website to view the reply and continue the discussion.</p>
-        <p> thank you for being a part of our community!!</p>
-    </body>
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h1 { color: #3182ce; }
+    .message-box { background: #ebf8ff; color: #2b6cb0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    .footer { font-size: 0.9em; color: #718096; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Your Question has been Answered!</h1>
+    <p>Hello <strong><%= studentName %></strong>,</p>
+    <p>Your instructor has responded to your question in the course <strong>"<%= courseName %>"</strong>.</p>
+    <p>Log in to your course dashboard to view the reply and continue learning.</p>
+    <div class="footer">
+      <p>Happy Learning!</p>
+    </div>
+  </div>
+</body>
+</html>

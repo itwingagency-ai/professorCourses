@@ -143,9 +143,15 @@ export default function OrdersAnalytics({ isDashboard }: Props) {
                             Orders Analytics
                         </h1>
                         {!isDashboard && (
-                            <p className={`${styles.label} px-5`}>
-                                Last 12 Months Analytics Data
-                            </p>
+                            <>
+                                <p className={`${styles.label} px-5`}>
+                                    Last 12 Months Analytics Data
+                                </p>
+                                <div className="mt-4 mx-5 bg-orange-500/10 border-l-4 border-orange-500 p-4 rounded max-w-[800px]">
+                                    <h3 className="text-orange-500 font-bold">Payments Coming Soon</h3>
+                                    <p className="text-gray-500 dark:text-gray-300 text-sm">Stripe integration and revenue analytics are planned for a future update. The chart below shows overall enrollments.</p>
+                                </div>
+                            </>
                         )}
                     </div>
                     <div className={`w-full ${!isDashboard ? 'h-[90%]' : 'h-full'} flex items-center justify-center`}>

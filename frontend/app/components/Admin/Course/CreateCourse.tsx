@@ -37,6 +37,12 @@ const CreateCourse: FC = () => {
         category:"",
         demoUrl: "",
         thumbnail: "",
+        language: "English",
+        duration: "",
+        previewVideoUrl: "",
+        requirements: [{ title: "" }],
+        whatYouWillLearn: [{ title: "" }],
+        targetAudience: [{ title: "" }],
     });
     const [benefits, setBenefits] = useState([{ title: "" }]);
     const [prerequisites, setPrerequisites] = useState([{ title: "" }]);
@@ -53,6 +59,7 @@ const CreateCourse: FC = () => {
             },
         ],
         suggestion: "",
+        isFreePreview: false,
     },]);
     const [courseData, setCourseData] = useState({});
 
@@ -70,6 +77,7 @@ const CreateCourse: FC = () => {
                 url: link.url
             })),
             suggestion: courseContent.suggestion,
+            isFreePreview: (courseContent as any).isFreePreview || false,
         }));
         return {
             name: courseInfo.name,
@@ -85,6 +93,13 @@ const CreateCourse: FC = () => {
             benefits: formattedBenefits,
             prerequisites: formattedPrerequisites,
             courseData: formattedCourseContentData,
+            language: courseInfo.language,
+            duration: courseInfo.duration,
+            previewVideoUrl: courseInfo.previewVideoUrl,
+            requirements: courseInfo.requirements,
+            whatYouWillLearn: courseInfo.whatYouWillLearn,
+            targetAudience: courseInfo.targetAudience,
+            courseTags: courseInfo.tags ? courseInfo.tags.split(",").map((t: string) => t.trim()) : [],
         };
     };
 

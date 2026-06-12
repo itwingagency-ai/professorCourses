@@ -33,6 +33,10 @@ export interface IUser extends Document {
   };
   role: UserRole;
   isVerified: boolean;
+  status?: "active" | "pending" | "blocked" | "suspended";
+  lastLoginAt?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   courses: IUserCourse[];
   comparePassword: (password: string) => Promise<boolean>;
   SignAccessToken: () => string;
@@ -78,6 +82,26 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "pending", "blocked", "suspended"],
+      default: "active",
+    },
+
+    lastLoginAt: {
+      type: Date,
+    },
+
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+
+    passwordResetExpires: {
+      type: Date,
+      select: false,
     },
 
     courses: [

@@ -15,18 +15,19 @@ export default function TeacherProtected({ children }: ProtectedProps) {
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
+  const isBlocked = user?.status === "blocked" || user?.status === "suspended";
 
   useEffect(() => {
-    if (authChecked && (!user || !isTeacher)) {
+    if (authChecked && (!user || !isTeacher || isBlocked)) {
       router.replace("/");
     }
-  }, [authChecked, user, isTeacher, router]);
+  }, [authChecked, user, isTeacher, isBlocked, router]);
 
   if (!authChecked) {
     return <Loader />;
   }
 
-  if (!user || !isTeacher) {
+  if (!user || !isTeacher || isBlocked) {
     return null;
   }
 

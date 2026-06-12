@@ -6,6 +6,7 @@ import {
   getAdminUserOrders,
   getAdminCourseStudents,
   getAdminOrderById,
+  getAuditLogs,
 } from "../controllers/admin.controller";
 import { updateAccessToken } from "../controllers/user.controller";
 
@@ -49,6 +50,14 @@ adminRouter.get(
   isAuthenticated,
   authorizeRoles("admin"),
   getAdminOrderById
+);
+
+adminRouter.get(
+  "/audit-logs",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  getAuditLogs
 );
 
 export default adminRouter;

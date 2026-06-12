@@ -25,7 +25,19 @@ export const isAuthenticated = CatchAsyncError(
     if (!user) {
       return next(new ErrorHandler("please login to access this resource", 404));
     }
-    req.user = JSON.parse(user);
+    const parsedUser = JSON.parse(user);
+    if (parsedUser.status === "blocked" || parsedUser.status === "suspended") {
+      res.cookie("access_token", "", { maxAge: 1 });
+      res.cookie("refresh_token", "", { maxAge: 1 });
+      await redis.del(decoded.id);
+      return next(
+        new ErrorHandler(
+          `Your account has been ${parsedUser.status}. Please contact support.`,
+          403
+        )
+      );
+    }
+    req.user = parsedUser;
     next();
   }
 );

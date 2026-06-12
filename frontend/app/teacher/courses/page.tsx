@@ -86,13 +86,15 @@ const TeacherCoursesPage: FC<Props> = () => {
                     </div>
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold uppercase ${
                           course.status === 'published' ? 'bg-green-100 text-green-700' : 
                           course.status === 'pending' ? 'bg-blue-100 text-blue-700' :
                           course.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          course.status === 'draft' ? 'bg-gray-200 text-gray-700' :
+                          course.status === 'archived' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-700'
                         }`}>
-                          {course.status || 'published'}
+                          {course.status || 'pending'}
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">{course.category}</span>
                       </div>

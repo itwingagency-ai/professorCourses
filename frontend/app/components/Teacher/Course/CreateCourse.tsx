@@ -42,6 +42,12 @@ const CreateCourse: FC<Props> = () => {
         category: "",
         demoUrl: "",
         thumbnail: "",
+        language: "English",
+        duration: "",
+        previewVideoUrl: "",
+        requirements: [{ title: "" }],
+        whatYouWillLearn: [{ title: "" }],
+        targetAudience: [{ title: "" }],
     });
     const [benefits, setBenefits] = useState([{ title: "" }]);
     const [prerequisites, setPrerequisites] = useState([{ title: "" }]);
@@ -57,6 +63,7 @@ const CreateCourse: FC<Props> = () => {
             },
         ],
         suggestion: "",
+        isFreePreview: false,
     }]);
     const [courseData, setCourseData] = useState({});
 
@@ -73,6 +80,7 @@ const CreateCourse: FC<Props> = () => {
                 url: link.url
             })),
             suggestion: courseContent.suggestion,
+            isFreePreview: (courseContent as any).isFreePreview || false,
         }));
 
         const data = {
@@ -89,6 +97,13 @@ const CreateCourse: FC<Props> = () => {
             prerequisites: formattedPrerequisites,
             courseData: formattedCourseContentData,
             status: "published",
+            language: courseInfo.language,
+            duration: courseInfo.duration,
+            previewVideoUrl: courseInfo.previewVideoUrl,
+            requirements: courseInfo.requirements,
+            whatYouWillLearn: courseInfo.whatYouWillLearn,
+            targetAudience: courseInfo.targetAudience,
+            courseTags: courseInfo.tags ? courseInfo.tags.split(",").map((t: string) => t.trim()) : [],
         };
 
         setCourseData(data);

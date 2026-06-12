@@ -7,6 +7,7 @@ import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import ejs from "ejs";
 import path from "path";
 import sendMail from "../utils/sendMail";
+import AdminAuditLogModel from "../models/auditLog.model";
 import {
   accessTokenOptions,
   refreshTokenOptions,
@@ -182,6 +183,19 @@ export const loginUser = CatchAsyncError(
       if (!isPasswordMatch) {
         return next(new ErrorHandler("Invalid email or password", 400));
       }
+
+      if (user.status === "blocked" || user.status === "suspended") {
+        return next(
+          new ErrorHandler(
+            `Your account has been ${user.status}. Please contact support.`,
+            403
+          )
+        );
+      }
+
+      user.lastLoginAt = new Date();
+      await user.save();
+
       sendToken(user, 200, res);
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
@@ -299,9 +313,20 @@ export const socialAuth = CatchAsyncError(
           email,
           name,
           avatar,
+          lastLoginAt: new Date(),
         });
         sendToken(newUser, 200, res);
       } else {
+        if (user.status === "blocked" || user.status === "suspended") {
+          return next(
+            new ErrorHandler(
+              `Your account has been ${user.status}. Please contact support.`,
+              403
+            )
+          );
+        }
+        user.lastLoginAt = new Date();
+        await user.save();
         sendToken(user, 200, res);
       }
     } catch (error: any) {
@@ -319,23 +344,25 @@ export const updateUserInfo = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { name } = req.body as IUpdateUserInfo;
-      //const userId = req.user?._id
       const userId = req.user?._id as string;
       const user = await userModel.findById(userId);
-      // if (email && user) {
-      //   const isEmailExist = await userModel.findOne({ email });
-      //   if (isEmailExist) {
-      //     return next(new ErrorHandler("Email already exist", 400));
-      //   }
-      //   user.email = email;
-      // }
-      if (name && user) {
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+      if (user.status === "blocked" || user.status === "suspended") {
+        return next(
+          new ErrorHandler(
+            `Your account has been ${user.status}. Please contact support.`,
+            403
+          )
+        );
+      }
+      if (name) {
         user.name = name;
       }
-      await user?.save();
-      // await redis.set(userId, JSON.stringify(user));
+      await user.save();
       if (userId) {
-        await redis.set(userId, JSON.stringify(user)); // Now userId is of type string
+        await redis.set(userId, JSON.stringify(user));
       }
 
       res.status(200).json({
@@ -537,6 +564,235 @@ export const deleteUser = CatchAsyncError(
       res.status(200).json({
         success: true,
         message: " User deleted Successfully",
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// forgot password
+export const forgotPassword = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return next(new ErrorHandler("Please enter your email", 400));
+      }
+
+      const user = await userModel.findOne({ email });
+      if (!user) {
+        return next(new ErrorHandler("User not found with this email", 404));
+      }
+
+      const resetToken = crypto.randomBytes(20).toString("hex");
+
+      user.passwordResetToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+      user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+      await user.save();
+
+      const origin = req.headers.origin || "http://localhost:3000";
+      const resetUrl = `${origin}/reset-password?token=${resetToken}`;
+
+      const data = { user: { name: user.name }, resetUrl };
+
+      try {
+        await sendMail({
+          email: user.email,
+          subject: "Password Reset Request",
+          template: "reset-password.ejs",
+          data,
+        });
+
+        res.status(200).json({
+          success: true,
+          message: `Please check your email: ${user.email} to reset your password`,
+        });
+      } catch (mailError: any) {
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save();
+
+        console.error("Mail send error:", mailError);
+        console.log(`[DEV MODE PASSWORD RESET URL]: ${resetUrl}`);
+        res.status(200).json({
+          success: true,
+          message: `Failed to send email. In development, please check console for the link.`,
+          resetUrl: process.env.NODE_ENV === "development" ? resetUrl : undefined,
+        });
+      }
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// reset password
+export const resetPassword = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return next(new ErrorHandler("Token and password are required", 400));
+      }
+
+      if (password.length < 6) {
+        return next(new ErrorHandler("Password must be at least 6 characters", 400));
+      }
+
+      const hashedToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+      const user = await userModel.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: new Date() },
+      }).select("+password");
+
+      if (!user) {
+        return next(new ErrorHandler("Reset token is invalid or has expired", 400));
+      }
+
+      user.password = password;
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Password reset successfully. You can now login with your new password.",
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// block user --- admin
+export const blockUser = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorHandler("Invalid user ID", 400));
+      }
+
+      if (String(req.user?._id) === id) {
+        return next(new ErrorHandler("You cannot block yourself", 400));
+      }
+
+      const user = await userModel.findById(id);
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      user.status = "blocked";
+      await user.save();
+
+      await AdminAuditLogModel.create({
+        adminId: String(req.user?._id),
+        actionType: "block_user",
+        targetType: "User",
+        targetId: String(user._id),
+        description: `Blocked user: ${user.email}`,
+      });
+
+      await redis.del(id);
+
+      res.status(200).json({
+        success: true,
+        message: "User blocked successfully",
+        user,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// unblock user --- admin
+export const unblockUser = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorHandler("Invalid user ID", 400));
+      }
+
+      const user = await userModel.findById(id);
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      user.status = "active";
+      await user.save();
+
+      await AdminAuditLogModel.create({
+        adminId: String(req.user?._id),
+        actionType: "unblock_user",
+        targetType: "User",
+        targetId: String(user._id),
+        description: `Unblocked user: ${user.email}`,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "User unblocked successfully",
+        user,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// update user status --- admin
+export const updateUserStatus = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id, status } = req.body;
+      if (!id || !status) {
+        return next(new ErrorHandler("User ID and status are required", 400));
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorHandler("Invalid user ID", 400));
+      }
+
+      const validStatuses = ["active", "pending", "blocked", "suspended"];
+      if (!validStatuses.includes(status)) {
+        return next(new ErrorHandler("Invalid status value", 400));
+      }
+
+      if (String(req.user?._id) === id && status !== "active") {
+        return next(new ErrorHandler("You cannot block or suspend yourself", 400));
+      }
+
+      const user = await userModel.findById(id);
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      user.status = status;
+      await user.save();
+
+      if (status === "blocked" || status === "suspended") {
+        await redis.del(id);
+      } else {
+        await redis.set(id, JSON.stringify(user));
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `User status updated to ${status} successfully`,
+        user,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));

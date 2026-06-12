@@ -9,7 +9,6 @@ notifciationRouter.get(
   "/get-all-notifications",
   updateAccessToken,
   isAuthenticated,
-  authorizeRoles("admin"),
   getNotifications
 );
 // update notification 
@@ -17,7 +16,6 @@ notifciationRouter.put(
     "/update-notification/:id",
     updateAccessToken,
     isAuthenticated,
-    authorizeRoles("admin"),
     updateNotifications
   );
 export default notifciationRouter;

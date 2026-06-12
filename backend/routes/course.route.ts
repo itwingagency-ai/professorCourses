@@ -13,6 +13,7 @@ import {
   getSingleCourse,
   uploadCourse,
   updateCourseStatus,
+  toggleFeaturedCourse,
 } from "../controllers/course.controller";
 import { isAuthenticated, authorizeRoles } from "../middleware/auth";
 import { updateAccessToken } from "../controllers/user.controller";
@@ -70,6 +71,15 @@ courseRouter.put(
   isAuthenticated,
   authorizeRoles("admin"),
   updateCourseStatus
+);
+
+// toggle featured course -- for admin
+courseRouter.put(
+  "/admin/courses/:id/featured",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  toggleFeaturedCourse
 );
 
 // post genrate videourl

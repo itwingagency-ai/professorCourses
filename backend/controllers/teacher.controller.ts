@@ -5,6 +5,7 @@ import CourseModel from "../models/course.model";
 import OrderModel from "../models/order.model";
 import userModel from "../models/user.model";
 import NotificationModel from "../models/notification.model";
+import StudentProgressModel from "../models/studentProgress.model";
 import { redis } from "../utils/redis";
 import mongoose from "mongoose";
 import cloudinary from "cloudinary";
@@ -114,6 +115,14 @@ export const createTeacherCourse = CatchAsyncError(
         "prerequisites",
         "courseData",
         "thumbnail",
+        "slug",
+        "language",
+        "requirements",
+        "whatYouWillLearn",
+        "targetAudience",
+        "courseTags",
+        "duration",
+        "previewVideoUrl",
       ];
 
       allowedFields.forEach((field) => {
@@ -235,7 +244,9 @@ export const editTeacherCourse = CatchAsyncError(
       const allowedFields = [
         "name", "description", "category", "price", "estimatedPrice", 
         "tags", "level", "demoUrl", "benefits", "prerequisites", 
-        "courseData", "thumbnail"
+        "courseData", "thumbnail", "slug", "language", "requirements", 
+        "whatYouWillLearn", "targetAudience", "courseTags", "duration", 
+        "previewVideoUrl"
       ];
 
       allowedFields.forEach(field => {
@@ -243,6 +254,44 @@ export const editTeacherCourse = CatchAsyncError(
           data[field] = rawData[field];
         }
       });
+
+      if (data.name && !data.slug) {
+        const baseSlug = data.name
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^\w\-]+/g, "")
+          .replace(/\-\-+/g, "-")
+          .replace(/^-+/, "")
+          .replace(/-+$/, "") || "course";
+        
+        let slug = baseSlug;
+        let counter = 1;
+        while (await CourseModel.findOne({ slug, _id: { $ne: id } })) {
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+        data.slug = slug;
+      } else if (data.slug) {
+        let slug = data.slug
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^\w\-]+/g, "")
+          .replace(/\-\-+/g, "-")
+          .replace(/^-+/, "")
+          .replace(/-+$/, "") || "course";
+        
+        let baseSlug = slug;
+        let counter = 1;
+        while (await CourseModel.findOne({ slug, _id: { $ne: id } })) {
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+        data.slug = slug;
+      }
 
       // Handle thumbnail upload
       const thumbnail = data.thumbnail;
@@ -316,7 +365,21 @@ export const deleteTeacherCourse = CatchAsyncError(
         return next(new ErrorHandler("You can only delete your own courses", 403));
       }
 
-      await course.deleteOne();
+      // Soft delete
+      course.isArchived = true;
+      course.status = "archived";
+
+      if (!course.approvalHistory) {
+        course.approvalHistory = [];
+      }
+      course.approvalHistory.push({
+        status: "archived",
+        reason: "Soft deleted/archived by teacher",
+        changedBy: req.user?.name || "teacher",
+        changedAt: new Date(),
+      });
+
+      await course.save();
       await invalidateCourseCache(id);
 
       res.status(200).json({
@@ -355,9 +418,28 @@ export const getTeacherCourseStudents = CatchAsyncError(
       const studentIds = orders.map((o) => o.userId);
       const students = await userModel.find({ _id: { $in: studentIds } });
 
+      const progressRecords = await StudentProgressModel.find({
+        userId: { $in: studentIds },
+        courseId: id,
+      });
+
+      const totalLessons = course?.courseData?.length || 0;
+
+      const enrichedStudents = students.map((student) => {
+        const order = orders.find((o) => o.userId === String(student._id));
+        const progress = progressRecords.find((p) => String(p.userId) === String(student._id));
+
+        return {
+          ...student.toObject(),
+          orderStatus: order?.status || "unknown",
+          enrolledAt: order?.enrolledAt || null,
+          progress: progress || { completedLessons: [], progressPercentage: 0, totalLessons },
+        };
+      });
+
       res.status(200).json({
         success: true,
-        students,
+        students: enrichedStudents,
         course,
       });
     } catch (error: any) {

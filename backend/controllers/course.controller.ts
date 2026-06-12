@@ -13,7 +13,9 @@ import mongoose from "mongoose";
 import ejs from "ejs";
 import sendMail from "../utils/sendMail";
 import NotificationModel from "../models/notification.model";
+import AdminAuditLogModel from "../models/auditLog.model";
 import axios from "axios";
+import userModel from "../models/user.model";
 
 const getPurchasedCourseId = (course: any): string | null => {
   if (!course) return null;
@@ -99,6 +101,17 @@ export const uploadCourse = CatchAsyncError(
       await redis.del("allCourses");
       await redis.del("public:publishedCourses");
 
+      // create notification for new course if pending
+      if (data.status === "pending" || !data.status) {
+        await NotificationModel.create({
+          recipientRole: "admin",
+          type: "course_submission",
+          title: "New Course Pending Approval",
+          message: `Teacher ${req.user?.name} has submitted a new course: ${data.name}.`,
+          link: "/admin/courses",
+        });
+      }
+
       // Create the course (this also sends the HTTP response)
       await createCourse(data, res, next);
 
@@ -120,7 +133,10 @@ export const editCourse = CatchAsyncError(
       const allowedFields = [
         "name", "description", "category", "price", "estimatedPrice", 
         "tags", "level", "demoUrl", "benefits", "prerequisites", 
-        "courseData", "thumbnail", "status", "rejectionReason"
+        "courseData", "thumbnail", "status", "rejectionReason",
+        "slug", "language", "requirements", "whatYouWillLearn", 
+        "targetAudience", "courseTags", "duration", "previewVideoUrl",
+        "isFeatured", "isArchived", "approvalHistory"
       ];
       
       const data: any = {};
@@ -130,16 +146,60 @@ export const editCourse = CatchAsyncError(
         }
       }
 
+      const courseId = req.params.id;
+
+      if (data.name && !data.slug) {
+        const baseSlug = data.name
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^\w\-]+/g, "")
+          .replace(/\-\-+/g, "-")
+          .replace(/^-+/, "")
+          .replace(/-+$/, "") || "course";
+        
+        let slug = baseSlug;
+        let counter = 1;
+        while (await CourseModel.findOne({ slug, _id: { $ne: courseId } })) {
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+        data.slug = slug;
+      } else if (data.slug) {
+        let slug = data.slug
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^\w\-]+/g, "")
+          .replace(/\-\-+/g, "-")
+          .replace(/^-+/, "")
+          .replace(/-+$/, "") || "course";
+        
+        let baseSlug = slug;
+        let counter = 1;
+        while (await CourseModel.findOne({ slug, _id: { $ne: courseId } })) {
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+        data.slug = slug;
+      }
+
       if (data.status) {
-        const allowedStatuses = ["draft", "pending", "published", "rejected"];
+        const allowedStatuses = ["draft", "pending", "published", "rejected", "archived"];
         if (!allowedStatuses.includes(data.status)) {
           return next(new ErrorHandler("Invalid status", 400));
+        }
+        if (data.status === "archived") {
+          data.isArchived = true;
+        } else {
+          data.isArchived = false;
         }
       }
 
       const thumbnail = data.thumbnail; // This is an object in your example.
 
-      const courseId = req.params.id;
       const courseData = await CourseModel.findById(courseId) as any;
 
       if (thumbnail && typeof thumbnail === "object" && thumbnail.url && thumbnail.public_id) {
@@ -221,9 +281,8 @@ export const editCourse = CatchAsyncError(
 export const getSingleCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // trying to get it from redis to reduce traffic from the server
-      const courseId = req.params.id;
-      const cacheKey = `public:course:${courseId}`;
+      const idOrSlug = req.params.id;
+      const cacheKey = `public:course:${idOrSlug}`;
       const isCacheExist = await redis.get(cacheKey);
       if (isCacheExist) {
         const course = JSON.parse(isCacheExist);
@@ -232,7 +291,14 @@ export const getSingleCourse = CatchAsyncError(
           course,
         });
       } else {
-        const course = await CourseModel.findOne({ _id: courseId, status: "published" }).select(
+        let query: any = { status: "published", isArchived: { $ne: true } };
+        if (mongoose.Types.ObjectId.isValid(idOrSlug)) {
+          query = { ...query, $or: [{ _id: idOrSlug }, { slug: idOrSlug }] };
+        } else {
+          query.slug = idOrSlug;
+        }
+
+        const course = await CourseModel.findOne(query).select(
           "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
         );
 
@@ -241,7 +307,7 @@ export const getSingleCourse = CatchAsyncError(
         }
 
         // set this in redis cache
-        await redis.set(cacheKey, JSON.stringify(course), "EX", 604800); // 7 days expiray
+        await redis.set(cacheKey, JSON.stringify(course), "EX", 604800); // 7 days expiry
         res.status(200).json({
           success: true,
           course,
@@ -257,23 +323,38 @@ export const getSingleCourse = CatchAsyncError(
 export const getAllCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      //  trying to get it from redis to reduce traffic from the server
+      const isFeatured = req.query.isFeatured === "true";
+      if (req.query.isFeatured !== undefined) {
+        const course = await CourseModel.find({
+          status: "published",
+          isArchived: { $ne: true },
+          isFeatured,
+        }).select(
+          "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
+        );
+        return res.status(200).json({
+          success: true,
+          course,
+        });
+      }
+
       const cacheKey = "public:publishedCourses";
       const isCacheExist = await redis.get(cacheKey);
       if (isCacheExist) {
         const course = JSON.parse(isCacheExist);
-       //  console.log("hitting redis");
         res.status(200).json({
           success: true,
           course,
         });
       } else {
-        const course = await CourseModel.find({ status: "published" }).select(
+        const course = await CourseModel.find({
+          status: "published",
+          isArchived: { $ne: true },
+        }).select(
           "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
         );
         // set this in redis cache
-        await redis.set(cacheKey, JSON.stringify(course), "EX", 604800); // 7 days expiray
-        // console.log("hitting mongodb");
+        await redis.set(cacheKey, JSON.stringify(course), "EX", 604800); // 7 days expiry
         res.status(200).json({
           success: true,
           course,
@@ -397,9 +478,11 @@ export const addQuestion = CatchAsyncError(
 
       // Create a notification for the instructor/admin
       await NotificationModel.create({
-        user: req.user?._id,
+        userId: course.teacherId, // To the teacher
+        type: "new_question",
         title: "New Question Received",
         message: `You have a new question from ${req.user?.name} on ${courseContent.title}`,
+        link: `/teacher/courses`, // Or a specific Q&A link if available
       });
 
       // Save the updated course
@@ -442,6 +525,9 @@ export const addAnswer = CatchAsyncError(
       const { answer, courseId, contentId, questionId }: IAddAnswerData =
         req.body;
       const course = await CourseModel.findById(courseId);
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
       if (!mongoose.Types.ObjectId.isValid(contentId)) {
         return next(new ErrorHandler(" invalid content id", 400));
       }
@@ -474,14 +560,24 @@ export const addAnswer = CatchAsyncError(
       // Send notification to question author
       if (String(req.user?._id) === String(question.user._id)) {
         await NotificationModel.create({
-          user: req.user?._id,
+          userId: question.user._id,
+          type: "qa_reply",
           title: "New Question Reply Received",
-          message: `You have a new question reply from ${courseContent.title}`,
+          message: `You have a new question reply in ${courseContent.title}`,
+          link: `/course-access/${courseId}`,
         });
       } else {
+        await NotificationModel.create({
+          userId: question.user._id,
+          type: "qa_reply",
+          title: "New Question Reply Received",
+          message: `Your instructor replied to your question in ${courseContent.title}`,
+          link: `/course-access/${courseId}`,
+        });
+
         const data = {
-          name: question.user.name,
-          title: courseContent.title,
+          studentName: question.user.name,
+          courseName: course.name,
         };
         try {
           await sendMail({
@@ -565,9 +661,11 @@ export const addReview = CatchAsyncError(
 
       // Create and save the review notification
       await NotificationModel.create({
-        user: req.user?._id,
+        userId: course.teacherId,
+        type: "new_review",
         title: "New Review Received",
         message: `${req.user?.name} has given a review on ${course?.name}`,
+        link: `/teacher/courses`,
       });
 
       res.status(200).json({
@@ -641,42 +739,57 @@ export const deleteCourse = CatchAsyncError(
     try {
       const { id } = req.params;
 
-      // Validate if the id is a valid ObjectId
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return next(new ErrorHandler("Invalid course ID", 400));
       }
 
-      // Find the course by ID
       const course = await CourseModel.findById(id);
 
-      // If course does not exist, return a 404
       if (!course) {
         return next(new ErrorHandler("Course not found", 404));
       }
 
-      // Delete the course
-      await course.deleteOne();
+      // Soft delete
+      course.isArchived = true;
+      course.status = "archived";
 
-      // Invalidate the Redis cache after creating the course
+      const userName = req.user?.name || "admin";
+      if (!course.approvalHistory) {
+        course.approvalHistory = [];
+      }
+      course.approvalHistory.push({
+        status: "archived",
+        reason: "Soft deleted/archived course",
+        changedBy: userName,
+        changedAt: new Date(),
+      });
+
+      await course.save();
+
+      // Audit Log
+      await AdminAuditLogModel.create({
+        adminId: String(req.user?._id),
+        actionType: "archive_course",
+        targetType: "Course",
+        targetId: String(course._id),
+        description: `Archived course: ${course.name}`,
+      });
+
+      // Invalidate cache
       await redis.del("allCourses");
       await redis.del("public:publishedCourses");
       await redis.del(`public:course:${id}`);
 
-      // Update the cache with fresh course data from MongoDB
+      // Update cache
       const courses = await CourseModel.find().select(
         "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
       );
-      await redis.set("allCourses", JSON.stringify(courses), "EX", 604800); // 7 days expiray;
-      // // Remove course from Redis (if applicable)
-      // const redisResult = await redis.del(id);
-      // if (!redisResult) {
-      //   console.log(`Redis key for Course ${id} not found.`);
-      // }
+      await redis.set("allCourses", JSON.stringify(courses), "EX", 604800);
 
-      // Send success response once everything is done
       res.status(200).json({
         success: true,
-        message: "Course deleted successfully",
+        message: "Course archived successfully",
+        course,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
@@ -779,7 +892,7 @@ export const updateCourseStatus = CatchAsyncError(
         return next(new ErrorHandler("Invalid course ID", 400));
       }
 
-      const validStatuses = ["draft", "pending", "published", "rejected"];
+      const validStatuses = ["draft", "pending", "published", "rejected", "archived"];
       if (!validStatuses.includes(status)) {
         return next(new ErrorHandler("Invalid status", 400));
       }
@@ -796,7 +909,65 @@ export const updateCourseStatus = CatchAsyncError(
         course.rejectionReason = undefined; // clear rejection reason if approved or re-submitted
       }
 
+      if (status === "archived") {
+        course.isArchived = true;
+      } else {
+        course.isArchived = false;
+      }
+
+      // approvalHistory logging
+      const userName = req.user?.name || "admin";
+      if (!course.approvalHistory) {
+        course.approvalHistory = [];
+      }
+      course.approvalHistory.push({
+        status,
+        reason: rejectionReason || (status === "rejected" ? "No reason provided." : `Status updated to ${status}`),
+        changedBy: userName,
+        changedAt: new Date(),
+      });
+
       await course.save();
+
+      // Audit Log
+      await AdminAuditLogModel.create({
+        adminId: String(req.user?._id),
+        actionType: `update_course_status`,
+        targetType: "Course",
+        targetId: String(course._id),
+        description: `Updated course status to ${status}: ${course.name}`,
+        metadata: { status, rejectionReason },
+      });
+
+      // Notification and Email to teacher
+      if (status === "published" || status === "rejected") {
+        await NotificationModel.create({
+          userId: course.teacherId,
+          type: "course_status",
+          title: `Course ${status === "published" ? "Approved" : "Rejected"}`,
+          message: `Your course "${course.name}" has been ${status}.${status === "rejected" ? ` Reason: ${rejectionReason}` : ""}`,
+          link: "/teacher/courses",
+        });
+
+        // Get Teacher info to send email
+        const teacher = await userModel.findById(course.teacherId);
+        if (teacher) {
+          try {
+            await sendMail({
+              email: teacher.email,
+              subject: status === "published" ? "Your Course is Approved!" : "Course Update Required",
+              template: status === "published" ? "course-approval.ejs" : "course-rejection.ejs",
+              data: {
+                teacherName: teacher.name,
+                courseName: course.name,
+                rejectionReason: rejectionReason || "No specific reason provided.",
+              },
+            });
+          } catch (error: any) {
+            console.warn("Failed to send course approval/rejection email:", error.message);
+          }
+        }
+      }
 
       // Manage caches:
       await redis.del("allCourses");
@@ -812,6 +983,56 @@ export const updateCourseStatus = CatchAsyncError(
 
       res.status(200).json({
         success: true,
+        course,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
+// toggle featured course -- for admin
+export const toggleFeaturedCourse = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorHandler("Invalid course ID", 400));
+      }
+
+      const course = await CourseModel.findById(id);
+      if (!course) {
+        return next(new ErrorHandler("Course not found", 404));
+      }
+
+      course.isFeatured = !course.isFeatured;
+      await course.save();
+
+      // Audit Log
+      await AdminAuditLogModel.create({
+        adminId: String(req.user?._id),
+        actionType: course.isFeatured ? "feature_course" : "unfeature_course",
+        targetType: "Course",
+        targetId: String(course._id),
+        description: `${course.isFeatured ? "Featured" : "Unfeatured"} course: ${course.name}`,
+      });
+
+      // Manage caches:
+      await redis.del("allCourses");
+      await redis.del("public:publishedCourses");
+      await redis.del(id);
+      await redis.del(`public:course:${id}`);
+
+      // Rebuild basic cache
+      const courses = await CourseModel.find().select(
+        "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
+      );
+      await redis.set("allCourses", JSON.stringify(courses), "EX", 604800);
+
+      res.status(200).json({
+        success: true,
+        message: `Course featured status set to ${course.isFeatured}`,
         course,
       });
     } catch (error: any) {

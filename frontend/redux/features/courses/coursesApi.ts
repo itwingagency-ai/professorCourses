@@ -112,6 +112,15 @@ export const courseApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Courses"],
     }),
+
+    toggleFeaturedCourse: builder.mutation({
+      query: (id) => ({
+        url: `admin/courses/${id}/featured`,
+        method: "PUT",
+        credentials: "include" as const,
+      }),
+      invalidatesTags: ["Courses"],
+    }),
   }),
 
   overrideExisting: true,
@@ -128,4 +137,5 @@ export const {
   useGetAdminAllCoursesQuery,
   useEditCourseMutation,
   useUpdateCourseStatusMutation,
+  useToggleFeaturedCourseMutation,
 } = courseApi;

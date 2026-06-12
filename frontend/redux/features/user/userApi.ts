@@ -102,6 +102,34 @@ export const userApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["User"],
     }),
+
+    blockUser: builder.mutation({
+      query: (id: string) => ({
+        url: `block-user/${id}`,
+        method: "PUT",
+        credentials: "include" as const,
+      }),
+      invalidatesTags: ["User"],
+    }),
+
+    unblockUser: builder.mutation({
+      query: (id: string) => ({
+        url: `unblock-user/${id}`,
+        method: "PUT",
+        credentials: "include" as const,
+      }),
+      invalidatesTags: ["User"],
+    }),
+
+    updateUserStatus: builder.mutation({
+      query: (data: { id: string; status: string }) => ({
+        url: "update-user-status",
+        method: "PUT",
+        body: data,
+        credentials: "include" as const,
+      }),
+      invalidatesTags: ["User"],
+    }),
   }),
 
   overrideExisting: true,
@@ -114,4 +142,7 @@ export const {
   useGetAllUsersQuery,
   useDeleteUserMutation,
   useUpdateUserRoleMutation,
+  useBlockUserMutation,
+  useUnblockUserMutation,
+  useUpdateUserStatusMutation,
 } = userApi;

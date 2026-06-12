@@ -12,6 +12,9 @@ import { useGetCourseContentQuery } from "@/redux/features/courses/coursesApi";
 import LessonQuestions from "../../components/Course/LessonQuestions";
 import CourseReview from "../../components/Course/CourseReview";
 import CoursePlayer from "../../utils/CoursePlayer";
+import CourseQuizzes from "../../components/Course/CourseQuizzes";
+import CourseAssignments from "../../components/Course/CourseAssignments";
+import CourseCertificate from "../../components/Course/CourseCertificate";
 import { normalizeSingleCourseResponse, normalizeCourseContentResponse } from "@/lib/normalizers";
 import StudentProgressBar from "../../components/Student/StudentProgressBar";
 import {
@@ -99,6 +102,9 @@ const CourseAccessPage: FC = () => {
   const [route, setRoute] = useState("Login");
   const [activeLessonIndex, setActiveLessonIndex] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("Overview");
+  const [lessonNote, setLessonNote] = useState("");
+  const [saveNoteStatus, setSaveNoteStatus] = useState("");
 
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
@@ -158,8 +164,22 @@ const CourseAccessPage: FC = () => {
   useEffect(() => {
     if (initialLoadDone && activeLesson?.id && user) {
       saveLastLesson({ courseId, lessonId: activeLesson.id });
+      
+      // Load note from local storage
+      const noteKey = `note_${courseId}_${activeLesson.id}`;
+      const savedNote = localStorage.getItem(noteKey);
+      setLessonNote(savedNote || "");
+      setSaveNoteStatus("");
     }
   }, [activeLesson?.id, initialLoadDone, courseId, saveLastLesson, user]);
+
+  const handleSaveNote = () => {
+    if (!activeLesson?.id) return;
+    const noteKey = `note_${courseId}_${activeLesson.id}`;
+    localStorage.setItem(noteKey, lessonNote);
+    setSaveNoteStatus("Saved!");
+    setTimeout(() => setSaveNoteStatus(""), 2000);
+  };
 
   const handleMarkComplete = async () => {
     if (!activeLesson?.id) return;
@@ -294,97 +314,61 @@ const CourseAccessPage: FC = () => {
             !isFetching &&
             !isError &&
             lessons.length > 0 && (
-              <section className="grid grid-cols-1 1000px:grid-cols-[350px_1fr] gap-6">
-                <aside className="hidden 1000px:block h-fit rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] p-4 sticky top-[95px]">
-                  <div className="mb-5">
-                    <h2 className="text-[22px] font-Poppins font-[700] text-black dark:text-white">
-                      Course Lessons
-                    </h2>
-
-                    <p className="text-[14px] text-gray-600 dark:text-gray-300 mt-1 mb-4">
-                      {lessons.length} lesson{lessons.length === 1 ? "" : "s"}
-                    </p>
-                    
-                    <StudentProgressBar percentage={progressPercentage} />
+              <section className="grid grid-cols-1 1000px:grid-cols-[1fr_350px] gap-6 items-start">
+                {/* Mobile sidebar toggle */}
+                <div className="1000px:hidden w-full flex items-center justify-between bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] p-4 rounded-xl mb-4">
+                  <div>
+                    <p className="text-[13px] text-gray-500">Current Lesson</p>
+                    <h3 className="font-semibold line-clamp-1">{activeLesson?.title}</h3>
                   </div>
-
-                  <div className="space-y-3 max-h-[calc(100vh-230px)] overflow-y-auto pr-1">
-                    {lessons.map((lesson, index) => {
-                      const isCompleted = completedLessonIds.includes(lesson.id);
-                      return (
-                      <button
-                        key={lesson.id}
-                        onClick={() => setActiveLessonIndex(index)}
-                        className={`w-full text-left p-4 rounded-xl border transition ${
-                          activeLessonIndex === index
-                            ? "bg-[#37a39a] text-white border-[#37a39a]"
-                            : "bg-transparent text-black dark:text-white border-gray-200 dark:border-[#ffffff1d] hover:border-[#37a39a]"
-                        }`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <span className="block text-[13px] opacity-80">
-                            Lesson {index + 1}
-                            {lesson.videoLength ? ` • ${lesson.videoLength} min` : ""}
-                          </span>
-                          {isCompleted && (
-                            <span className="text-green-300">✓</span>
-                          )}
-                        </div>
-
-                        <span className="block font-Poppins font-[600] mt-1 line-clamp-2">
-                          {lesson.title}
-                        </span>
-
-                        {lesson.videoSection && (
-                          <span className="block text-[12px] opacity-80 mt-1">
-                            {lesson.videoSection}
-                          </span>
-                        )}
-                      </button>
-                      );
-                    })}
-                  </div>
-                </aside>
-
-                <div className="1000px:hidden">
                   <button
                     onClick={() => setSidebarOpen((prev) => !prev)}
-                    className="w-full mb-4 py-3 rounded-lg bg-[#37a39a] text-white font-semibold"
+                    className="px-4 py-2 rounded-lg bg-[#37a39a] text-white font-semibold text-sm whitespace-nowrap"
                   >
                     {sidebarOpen ? "Hide Lessons" : "Show Lessons"}
                   </button>
-
-                  {sidebarOpen && (
-                    <div className="mb-5 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] p-4">
-                      <div className="space-y-3 max-h-[420px] overflow-y-auto">
-                        {lessons.map((lesson, index) => (
-                          <button
-                            key={lesson.id}
-                            onClick={() => {
-                              setActiveLessonIndex(index);
-                              setSidebarOpen(false);
-                            }}
-                            className={`w-full text-left p-4 rounded-xl border transition ${
-                              activeLessonIndex === index
-                                ? "bg-[#37a39a] text-white border-[#37a39a]"
-                                : "bg-transparent text-black dark:text-white border-gray-200 dark:border-[#ffffff1d]"
-                            }`}
-                          >
-                            <span className="block text-[13px] opacity-80">
-                              Lesson {index + 1}
-                            </span>
-                            <span className="block font-semibold mt-1">
-                              {lesson.title}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                <main className="rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] overflow-hidden">
-                  <div className="w-full bg-black rounded-t-2xl overflow-hidden">
+                {/* Mobile Sidebar Dropdown */}
+                {sidebarOpen && (
+                  <div className="1000px:hidden mb-5 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] p-4">
+                    <div className="mb-4">
+                      <StudentProgressBar percentage={progressPercentage} />
+                    </div>
+                    <div className="space-y-2 max-h-[420px] overflow-y-auto">
+                      {lessons.map((lesson, index) => {
+                        const isCompleted = completedLessonIds.includes(lesson.id);
+                        return (
+                        <button
+                          key={lesson.id}
+                          onClick={() => {
+                            setActiveLessonIndex(index);
+                            setSidebarOpen(false);
+                          }}
+                          className={`w-full text-left p-4 rounded-xl border transition ${
+                            activeLessonIndex === index
+                              ? "bg-[#37a39a] text-white border-[#37a39a]"
+                              : "bg-transparent text-black dark:text-white border-gray-200 dark:border-[#ffffff1d]"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="block text-[12px] opacity-80">Lesson {index + 1}</span>
+                            {isCompleted && <span className="text-green-500">✓</span>}
+                          </div>
+                          <span className="block font-semibold text-sm line-clamp-2">
+                            {lesson.title}
+                          </span>
+                        </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Main Content Area */}
+                <main className="w-full flex flex-col gap-6">
+                  {/* Video Player Box */}
+                  <div className="rounded-2xl bg-black overflow-hidden shadow-lg border border-gray-800">
                     {activeLesson?.videoUrl ? (
                       <CoursePlayer
                         videoUrl={activeLesson.videoUrl}
@@ -393,114 +377,269 @@ const CourseAccessPage: FC = () => {
                         contentId={String((activeLesson as any)._id || activeLesson.id)}
                       />
                     ) : (
-                      <div className="aspect-video flex items-center justify-center">
+                      <div className="aspect-video flex items-center justify-center bg-slate-900">
                         <div className="text-center p-8">
                           <h3 className="text-[24px] font-Poppins font-[700] text-white">
                             Video not configured
                           </h3>
-                          <p className="text-gray-300 mt-2 max-w-[520px]">
-                            This lesson is available, but video URL or VdoCipher
-                            playback is not configured yet.
+                          <p className="text-gray-400 mt-2 max-w-[520px]">
+                            This lesson is available, but video URL or playback is not configured yet.
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="p-5 800px:p-8">
-                    <div className="flex flex-col 800px:flex-row 800px:items-start 800px:justify-between gap-4">
-                      <div>
-                        <p className="text-[#37a39a] font-Poppins font-[600]">
-                          Lesson {activeLessonIndex + 1} of {lessons.length}
-                        </p>
-
-                        <h1 className="text-[28px] 800px:text-[36px] font-Poppins font-[700] text-black dark:text-white mt-2 leading-tight">
-                          {activeLesson?.title}
-                        </h1>
-
-                        {activeLesson?.videoSection && (
-                          <p className="text-[14px] text-gray-500 dark:text-gray-300 mt-2">
-                            Section: {activeLesson.videoSection}
+                  {/* Tabs & Content Box */}
+                  <div className="rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] overflow-hidden">
+                    <div className="p-5 sm:p-8">
+                      {/* Lesson Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+                        <div>
+                          <p className="text-[#37a39a] font-Poppins font-[600] text-sm uppercase tracking-wider">
+                            Lesson {activeLessonIndex + 1} of {lessons.length}
                           </p>
-                        )}
+                          <h1 className="text-[24px] sm:text-[32px] font-Poppins font-[700] text-black dark:text-white mt-2 leading-tight">
+                            {activeLesson?.title}
+                          </h1>
+                          {activeLesson?.videoSection && (
+                            <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-slate-800 rounded-full text-[12px] text-gray-500 dark:text-gray-400 mt-3 font-medium">
+                              Section: {activeLesson.videoSection}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={goToPreviousLesson}
+                            disabled={activeLessonIndex === 0}
+                            className={`p-3 rounded-xl transition ${
+                              activeLessonIndex === 0
+                                ? "bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
+                                : "bg-gray-100 dark:bg-slate-800 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700"
+                            }`}
+                            title="Previous Lesson"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          </button>
+
+                          {!isCurrentLessonCompleted ? (
+                            <button
+                              onClick={handleMarkComplete}
+                              disabled={isMarking}
+                              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-[#37a39a] text-white hover:bg-[#2b857d] transition shadow-md shadow-[#37a39a]/20 ${isMarking ? 'opacity-70' : ''}`}
+                            >
+                              {isMarking ? "Saving..." : (
+                                <>
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                  Mark Complete
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={goToNextLesson}
+                              disabled={activeLessonIndex === lessons.length - 1}
+                              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition ${
+                                activeLessonIndex === lessons.length - 1
+                                  ? "bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
+                                  : "bg-[#37a39a] text-white hover:bg-[#2b857d] shadow-md shadow-[#37a39a]/20"
+                              }`}
+                            >
+                              Next Lesson
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex gap-3">
-                        <button
-                          onClick={goToPreviousLesson}
-                          disabled={activeLessonIndex === 0}
-                          className={`px-5 py-2 rounded-lg font-semibold ${
-                            activeLessonIndex === 0
-                              ? "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
-                              : "bg-[#37a39a1a] text-[#37a39a]"
-                          }`}
-                        >
-                          Previous
-                        </button>
-
-                        {!isCurrentLessonCompleted ? (
+                      {/* Tabs Navigation */}
+                      <div className="flex gap-1 sm:gap-4 overflow-x-auto border-b border-gray-200 dark:border-[#ffffff1d] mb-6 pb-2 scrollbar-hide">
+                        {["Overview", "Resources", "Notes", "Q&A", "Reviews", "Quizzes", "Assignments", "Certificate"].map((tab) => (
                           <button
-                            onClick={handleMarkComplete}
-                            disabled={isMarking}
-                            className={`px-5 py-2 rounded-lg font-semibold bg-[#37a39a] text-white hover:bg-[#2b857d] transition ${isMarking ? 'opacity-50' : ''}`}
-                          >
-                            {isMarking ? "Saving..." : "Mark Complete"}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={goToNextLesson}
-                            disabled={activeLessonIndex === lessons.length - 1}
-                            className={`px-5 py-2 rounded-lg font-semibold ${
-                              activeLessonIndex === lessons.length - 1
-                                ? "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
-                                : "bg-[#37a39a] text-white"
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 py-2 font-semibold text-sm transition-colors whitespace-nowrap rounded-lg ${
+                              activeTab === tab
+                                ? "bg-[#37a39a]/10 text-[#37a39a]"
+                                : "text-gray-500 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
                             }`}
                           >
-                            Next
+                            {tab}
+                            {tab === "Resources" && activeLesson?.links?.length > 0 && (
+                              <span className="ml-2 px-2 py-0.5 bg-gray-200 dark:bg-slate-700 rounded-full text-xs">
+                                {activeLesson.links.length}
+                              </span>
+                            )}
                           </button>
+                        ))}
+                      </div>
+
+                      {/* Tab Content */}
+                      <div className="min-h-[300px]">
+                        {activeTab === "Overview" && (
+                          <div className="prose dark:prose-invert max-w-none">
+                            {activeLesson?.description ? (
+                              <p className="text-gray-600 dark:text-gray-300 leading-8 whitespace-pre-line">
+                                {activeLesson.description}
+                              </p>
+                            ) : (
+                              <p className="text-gray-400 italic">No description provided for this lesson.</p>
+                            )}
+                          </div>
+                        )}
+
+                        {activeTab === "Resources" && (
+                          <div>
+                            {activeLesson?.links?.length > 0 ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {activeLesson.links.map((link: any, index: number) => (
+                                  <a
+                                    key={index}
+                                    href={link?.url || link?.link || "#"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-[#ffffff1d] bg-gray-50 dark:bg-slate-800 hover:border-[#37a39a] transition group"
+                                  >
+                                    <div className="w-10 h-10 rounded-full bg-[#37a39a]/10 flex items-center justify-center text-[#37a39a] group-hover:bg-[#37a39a] group-hover:text-white transition">
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                    </div>
+                                    <span className="font-semibold text-black dark:text-white">
+                                      {link?.title || link?.name || "Download Resource"}
+                                    </span>
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-gray-500">No resources available for this lesson.</p>
+                            )}
+                          </div>
+                        )}
+
+                        {activeTab === "Notes" && (
+                          <div className="flex flex-col h-full">
+                            <p className="text-sm text-gray-500 mb-4">
+                              Personal notes for this lesson. Saved automatically to your browser.
+                            </p>
+                            <textarea
+                              value={lessonNote}
+                              onChange={(e) => setLessonNote(e.target.value)}
+                              placeholder="Type your notes here..."
+                              className="w-full h-[200px] p-4 rounded-xl border border-gray-200 dark:border-[#ffffff1d] bg-gray-50 dark:bg-slate-800 text-black dark:text-white focus:outline-none focus:border-[#37a39a] resize-none"
+                            />
+                            <div className="flex items-center justify-end mt-4 gap-4">
+                              {saveNoteStatus && <span className="text-green-500 text-sm font-medium">{saveNoteStatus}</span>}
+                              <button
+                                onClick={handleSaveNote}
+                                className="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg font-semibold hover:opacity-90 transition"
+                              >
+                                Save Notes
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {activeTab === "Q&A" && (
+                          <div className="mt-4">
+                            <LessonQuestions
+                              courseId={courseId}
+                              lesson={activeLesson}
+                              refetchCourseContent={refetch}
+                            />
+                          </div>
+                        )}
+
+                        {activeTab === "Reviews" && (
+                          <div className="mt-4">
+                            <CourseReview
+                              courseId={courseId}
+                              course={getCourseObject(data)}
+                              refetchCourseContent={refetch}
+                            />
+                          </div>
+                        )}
+
+                        {activeTab === "Quizzes" && (
+                          <div className="mt-4">
+                            <CourseQuizzes courseId={courseId} />
+                          </div>
+                        )}
+
+                        {activeTab === "Assignments" && (
+                          <div className="mt-4">
+                            <CourseAssignments courseId={courseId} />
+                          </div>
+                        )}
+
+                        {activeTab === "Certificate" && (
+                          <div className="mt-4">
+                            <CourseCertificate 
+                              courseId={courseId} 
+                              progressPercentage={progressPercentage} 
+                              isCertificateEnabled={getCourseObject(data)?.isCertificateEnabled !== false}
+                            />
+                          </div>
                         )}
                       </div>
                     </div>
-
-                    <p className="text-gray-600 dark:text-gray-300 mt-6 leading-8">
-                      {activeLesson?.description}
-                    </p>
-
-                    {activeLesson?.links?.length > 0 && (
-                      <div className="mt-10">
-                        <h2 className="text-[24px] font-Poppins font-[700] text-black dark:text-white">
-                          Resources
-                        </h2>
-
-                        <div className="mt-4 grid grid-cols-1 800px:grid-cols-2 gap-3">
-                          {activeLesson.links.map((link: any, index: number) => (
-                            <a
-                              key={index}
-                              href={link?.url || link?.link || "#"}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-4 rounded-xl border border-gray-200 dark:border-[#ffffff1d] bg-gray-50 dark:bg-slate-800 text-[#37a39a] font-semibold hover:opacity-80 transition"
-                            >
-                              {link?.title || link?.name || link?.url || "Resource"}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <LessonQuestions
-                      courseId={courseId}
-                      lesson={activeLesson}
-                      refetchCourseContent={refetch}
-                    />
-
-                    <CourseReview
-                      courseId={courseId}
-                      course={getCourseObject(data)}
-                      refetchCourseContent={refetch}
-                    />
                   </div>
                 </main>
+
+                {/* Desktop Sidebar (Right Side) */}
+                <aside className="hidden 1000px:block h-[calc(100vh-120px)] rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-[#ffffff1d] p-5 sticky top-[95px] overflow-hidden flex flex-col shadow-sm">
+                  <div className="mb-6 flex-shrink-0">
+                    <h2 className="text-[20px] font-Poppins font-[700] text-black dark:text-white">
+                      Course Content
+                    </h2>
+                    <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1 mb-5">
+                      {completedLessonIds.length} of {lessons.length} lessons completed
+                    </p>
+                    <StudentProgressBar percentage={progressPercentage} height="6px" />
+                  </div>
+
+                  <div className="space-y-3 overflow-y-auto pr-2 flex-1 scrollbar-custom">
+                    {lessons.map((lesson, index) => {
+                      const isCompleted = completedLessonIds.includes(lesson.id);
+                      const isActive = activeLessonIndex === index;
+                      
+                      return (
+                        <button
+                          key={lesson.id}
+                          onClick={() => setActiveLessonIndex(index)}
+                          className={`w-full text-left p-4 rounded-xl border transition group flex gap-3 ${
+                            isActive
+                              ? "bg-[#37a39a]/10 border-[#37a39a] shadow-sm"
+                              : "bg-gray-50 dark:bg-slate-800 border-transparent hover:border-gray-300 dark:hover:border-slate-600"
+                          }`}
+                        >
+                          <div className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center border ${
+                            isCompleted 
+                              ? "bg-green-500 border-green-500 text-white" 
+                              : isActive
+                                ? "border-[#37a39a] text-[#37a39a]"
+                                : "border-gray-300 dark:border-slate-600 text-transparent"
+                          }`}>
+                            {isCompleted ? (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                            ) : isActive ? (
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#37a39a]" />
+                            ) : null}
+                          </div>
+
+                          <div className="flex-1">
+                            <span className={`block text-[12px] font-semibold tracking-wide uppercase ${isActive ? "text-[#37a39a]" : "text-gray-500"}`}>
+                              Lesson {index + 1}
+                              {lesson.videoLength ? ` • ${lesson.videoLength} min` : ""}
+                            </span>
+                            <span className={`block font-Poppins font-[600] mt-1 text-[14px] leading-snug line-clamp-2 ${isActive ? "text-[#37a39a]" : "text-black dark:text-white"}`}>
+                              {lesson.title}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </aside>
               </section>
             )}
         </main>

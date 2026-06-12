@@ -272,6 +272,11 @@ const sidebar = () => {
                             to="/admin/users-analytics"
                             icon={<ManageHistoryIcon />}
                         />
+                        <Item
+                            title="Audit Logs"
+                            to="/admin/audit-logs"
+                            icon={<MapOutlinedIcon />}
+                        />
                         <MenuItem
                             icon={<ExitToAppIcon />}
                             onClick={logoutHandler}

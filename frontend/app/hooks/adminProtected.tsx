@@ -15,18 +15,19 @@ export default function AdminProtected({ children }: ProtectedProps) {
   const { user, authChecked } = useSelector((state: any) => state.auth);
 
   const isAdmin = user?.role === "admin";
+  const isBlocked = user?.status === "blocked" || user?.status === "suspended";
 
   useEffect(() => {
-    if (authChecked && (!user || !isAdmin)) {
+    if (authChecked && (!user || !isAdmin || isBlocked)) {
       router.replace("/");
     }
-  }, [authChecked, user, isAdmin, router]);
+  }, [authChecked, user, isAdmin, isBlocked, router]);
 
   if (!authChecked) {
     return <Loader />;
   }
 
-  if (!user || !isAdmin) {
+  if (!user || !isAdmin || isBlocked) {
     return null;
   }
 
