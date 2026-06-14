@@ -48,6 +48,17 @@ const CourseCertificate: FC<Props> = ({ courseId, progressPercentage, isCertific
     );
   }
 
+  if (cert && cert.status === 'revoked') {
+    return (
+      <div className="p-8 text-center bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+        <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">Certificate Revoked</h3>
+        <p className="text-red-500 mb-6 max-w-md mx-auto">
+          This certificate is no longer valid. If you believe this is an error, please contact support.
+        </p>
+      </div>
+    );
+  }
+
   if (!cert) {
     return (
       <div className="p-8 text-center bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-[#ffffff1d]">

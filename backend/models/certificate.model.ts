@@ -5,6 +5,7 @@ export interface ICertificate extends Document {
   courseId: mongoose.Types.ObjectId;
   certificateId: string;
   issuedAt: Date;
+  status: "valid" | "revoked";
 }
 
 const certificateSchema = new Schema<ICertificate>(
@@ -13,6 +14,7 @@ const certificateSchema = new Schema<ICertificate>(
     courseId: { type: Schema.Types.ObjectId, ref: "Course", required: true },
     certificateId: { type: String, required: true, unique: true },
     issuedAt: { type: Date, default: Date.now },
+    status: { type: String, enum: ["valid", "revoked"], default: "valid" },
   },
   { timestamps: true }
 );

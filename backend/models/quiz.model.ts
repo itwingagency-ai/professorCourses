@@ -13,6 +13,7 @@ export interface IQuiz extends Document {
   questions: IQuestion[];
   passingMarks: number;
   createdBy: mongoose.Types.ObjectId;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +40,7 @@ const quizSchema = new Schema<IQuiz>(
       ref: "User",
       required: true,
     },
+    isArchived: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -11,11 +11,30 @@ type Props = {
 };
 
 const CourseQuizzes: FC<Props> = ({ courseId }) => {
-  const { data, isLoading } = useGetQuizzesByCourseQuery(courseId);
+  const { data, isLoading, error } = useGetQuizzesByCourseQuery(courseId);
   const [activeQuiz, setActiveQuiz] = useState<any>(null);
 
   if (isLoading) {
     return <div className="p-5 text-center text-gray-500">Loading quizzes...</div>;
+  }
+
+  if (error) {
+    const err = error as any;
+    if (err.status === 403) {
+      return (
+        <div className="p-8 text-center text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+          <h3 className="text-xl font-bold mb-2">Access Denied</h3>
+          <p>You must be enrolled in this course to view its quizzes.</p>
+        </div>
+      );
+    }
+    if (err.status === 401) {
+      return <div className="p-5 text-center text-red-500">Please login to view quizzes.</div>;
+    }
+    if (err.status === 404) {
+      return <div className="p-5 text-center text-red-500">Course or quizzes not found.</div>;
+    }
+    return <div className="p-5 text-center text-red-500">Failed to load quizzes. ({err.data?.message || err.error})</div>;
   }
 
   const quizzes = data?.quizzes || [];

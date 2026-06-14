@@ -116,8 +116,16 @@ const AssignmentForm = ({ courseId, initialData, onClose }: any) => {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!title || !instructions || !dueDate) {
-      toast.error("Please fill all required fields.");
+    if (!title || !title.trim() || !instructions || !instructions.trim()) {
+      toast.error("Title and instructions are required.");
+      return;
+    }
+    if (!dueDate) {
+      toast.error("Due date is required.");
+      return;
+    }
+    if (totalMarks <= 0) {
+      toast.error("Total marks must be greater than 0.");
       return;
     }
 
@@ -180,6 +188,10 @@ const SubmissionsViewer = ({ assignment, onBack }: any) => {
   const submissions = data?.submissions || [];
 
   const handleSaveGrade = async (subId: string) => {
+    if (marks < 0 || marks > assignment.totalMarks) {
+      toast.error(`Marks must be between 0 and ${assignment.totalMarks}`);
+      return;
+    }
     try {
       await gradeAssignment({ submissionId: subId, body: { marks, feedback } }).unwrap();
       toast.success("Grade saved");

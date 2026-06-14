@@ -15,10 +15,34 @@ export const certificateApi = apiSlice.injectEndpoints({
         method: "GET",
       }),
     }),
+    getAllCertificatesAdmin: builder.query<any, void>({
+      query: () => ({
+        url: `certificate/admin/all`,
+        method: "GET",
+      }),
+      providesTags: ["Certificate"],
+    }),
+    revokeCertificateAdmin: builder.mutation<any, string>({
+      query: (certificateId) => ({
+        url: `certificate/admin/revoke/${certificateId}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Certificate"],
+    }),
+    restoreCertificateAdmin: builder.mutation<any, string>({
+      query: (certificateId) => ({
+        url: `certificate/admin/restore/${certificateId}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Certificate"],
+    }),
   }),
 });
 
 export const {
   useGetMyCertificatesQuery,
   useVerifyCertificateQuery,
+  useGetAllCertificatesAdminQuery,
+  useRevokeCertificateAdminMutation,
+  useRestoreCertificateAdminMutation,
 } = certificateApi;

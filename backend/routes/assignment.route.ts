@@ -10,6 +10,9 @@ import {
   editAssignment,
   deleteAssignment,
   getAllSubmissionsForAssignment,
+  getAllAssignmentsAdmin,
+  getAllSubmissionsAdmin,
+  archiveAssignmentAdmin,
 } from "../controllers/assignment.controller";
 
 const assignmentRouter = express.Router();
@@ -33,6 +36,7 @@ assignmentRouter.post(
   "/submit/:assignmentId",
   updateAccessToken,
   isAuthenticated,
+  authorizeRoles("user", "student"),
   submitAssignment
 );
 
@@ -73,6 +77,30 @@ assignmentRouter.get(
   isAuthenticated,
   authorizeRoles("teacher", "admin"),
   getAllSubmissionsForAssignment
+);
+
+assignmentRouter.get(
+  "/admin/all",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  getAllAssignmentsAdmin
+);
+
+assignmentRouter.get(
+  "/admin/submissions",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  getAllSubmissionsAdmin
+);
+
+assignmentRouter.put(
+  "/admin/archive/:assignmentId",
+  updateAccessToken,
+  isAuthenticated,
+  authorizeRoles("admin"),
+  archiveAssignmentAdmin
 );
 
 export default assignmentRouter;

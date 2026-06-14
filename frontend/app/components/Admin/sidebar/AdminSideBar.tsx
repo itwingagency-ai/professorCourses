@@ -223,6 +223,37 @@ const sidebar = () => {
                             variant="h5"
                             sx={{ m: "15px 0 5px 20px" }}
                             className="!text-[18px] text-black dark:text-white capitalzie !font-[400]">
+                            {!isCollapsed && "Academic"}
+                        </Typography>
+                        <Item
+                            title="Quizzes"
+                            to="/admin/quizzes"
+                            icon={<QuizIcon />}
+                        />
+                        <Item
+                            title="Assignments"
+                            to="/admin/assignments"
+                            icon={<WysiwygIcon />}
+                        />
+                        <Item
+                            title="Submissions"
+                            to="/admin/submissions"
+                            icon={<ReceiptOutlinedIcon />}
+                        />
+                        <Item
+                            title="Quiz Attempts"
+                            to="/admin/quiz-attempts"
+                            icon={<ManageHistoryIcon />}
+                        />
+                        <Item
+                            title="Certificates"
+                            to="/admin/certificates"
+                            icon={<WebIcon />}
+                        />
+                        <Typography
+                            variant="h5"
+                            sx={{ m: "15px 0 5px 20px" }}
+                            className="!text-[18px] text-black dark:text-white capitalzie !font-[400]">
                             {!isCollapsed && "Customization"}
                         </Typography>
                         <Item

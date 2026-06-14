@@ -65,6 +65,27 @@ export const assignmentApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["AssignmentSubmission"],
     }),
+    getAllAssignmentsAdmin: builder.query<any, void>({
+      query: () => ({
+        url: `assignment/admin/all`,
+        method: "GET",
+      }),
+      providesTags: ["Assignment"],
+    }),
+    getAllSubmissionsAdmin: builder.query<any, void>({
+      query: () => ({
+        url: `assignment/admin/submissions`,
+        method: "GET",
+      }),
+      providesTags: ["AssignmentSubmission"],
+    }),
+    archiveAssignmentAdmin: builder.mutation<any, string>({
+      query: (assignmentId) => ({
+        url: `assignment/admin/archive/${assignmentId}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Assignment"],
+    }),
   }),
 });
 
@@ -77,4 +98,7 @@ export const {
   useDeleteAssignmentMutation,
   useGetAllSubmissionsForAssignmentQuery,
   useGradeAssignmentMutation,
+  useGetAllAssignmentsAdminQuery,
+  useGetAllSubmissionsAdminQuery,
+  useArchiveAssignmentAdminMutation,
 } = assignmentApi;

@@ -64,13 +64,22 @@ const VerifyCertificatePage = ({ params }: any) => {
                 </div>
               </div>
             ) : data?.data ? (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg overflow-hidden">
-                <div className="bg-green-500 dark:bg-green-600 px-4 py-3 flex items-center justify-center">
-                  <svg className="h-6 w-6 text-white mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <h3 className="text-lg font-bold text-white tracking-wide uppercase">Verified Authentic</h3>
-                </div>
+              <div className={`border rounded-lg overflow-hidden ${data.data.status === 'revoked' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'}`}>
+                {data.data.status === 'revoked' ? (
+                  <div className="bg-red-500 dark:bg-red-600 px-4 py-3 flex items-center justify-center">
+                    <svg className="h-6 w-6 text-white mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <h3 className="text-lg font-bold text-white tracking-wide uppercase">Certificate Revoked / Not Valid</h3>
+                  </div>
+                ) : (
+                  <div className="bg-green-500 dark:bg-green-600 px-4 py-3 flex items-center justify-center">
+                    <svg className="h-6 w-6 text-white mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 className="text-lg font-bold text-white tracking-wide uppercase">Verified Authentic</h3>
+                  </div>
+                )}
                 <div className="p-6 space-y-4">
                   <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
                     <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold tracking-wider">Certificate ID</p>

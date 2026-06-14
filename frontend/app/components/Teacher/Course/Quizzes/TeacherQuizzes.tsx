@@ -130,9 +130,34 @@ const QuizForm = ({ courseId, initialData, onClose }: any) => {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!title || !description || questions.length === 0) {
-      toast.error("Please fill all fields and add at least one question.");
+    if (!title || title.trim() === "") {
+      toast.error("Quiz title is required.");
       return;
+    }
+    if (questions.length === 0) {
+      toast.error("Please add at least one question.");
+      return;
+    }
+    if (passingMarks < 1 || passingMarks > 100) {
+      toast.error("Passing marks must be between 1 and 100.");
+      return;
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.text || q.text.trim() === "") {
+        toast.error(`Question ${i + 1} text is required.`);
+        return;
+      }
+      const validOptions = q.options.filter((opt: string) => opt.trim() !== "");
+      if (validOptions.length < 2) {
+        toast.error(`Question ${i + 1} must have at least two non-empty options.`);
+        return;
+      }
+      if (q.options[q.correctOptionIndex]?.trim() === "") {
+        toast.error(`Question ${i + 1}'s correct option cannot be an empty option.`);
+        return;
+      }
     }
 
     try {

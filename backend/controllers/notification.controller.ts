@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import ErrorHandler from "../utils/ErroHandler";
 import cron from "node-cron";
+
 // get all notification --- user specific and admin global
 export const getNotifications = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -38,13 +39,14 @@ export const updateNotifications = CatchAsyncError(
         }
 
         // Security: Ensure the user owns this notification OR is an admin marking an admin notification
-        if (req.user?.role !== "admin" && String(notification.userId) !== String(req.user?._id)) {
+        if (req.user?.role === "admin") {
+          if (notification.recipientRole !== "admin") {
+            return next(new ErrorHandler('Not authorized to update non-admin notifications', 403));
+          }
+        } else {
+          if (String(notification.userId) !== String(req.user?._id)) {
             return next(new ErrorHandler('Not authorized to update this notification', 403));
-        }
-        
-        if (req.user?.role === "admin" && notification.recipientRole !== "admin") {
-            // Admins can mark their own admin notifications, but maybe not student ones.
-            // Let's just strictly check.
+          }
         }
 
         notification.status = 'read';
@@ -72,16 +74,10 @@ export const updateNotifications = CatchAsyncError(
     }
   );
 
-  // testing cron
-  // cron.schedule("*/5 * * * * *", function(){
-  //   console.log("running a task every 5 seconds");
-  //   console.log("-------------");
-  // })
-
   // delete notification --- only admin
   cron.schedule("0 0 0 * * *", async()=>{
-    // ("running a task every day at 12:00 AM");
     const thirtyDaysago = new Date(Date.now() -30 * 24 *60 *60 * 1000 );
     await NotificationModel.deleteMany({status:"read", createdAt:{$lt: thirtyDaysago}});
     console.log("Deleted Read Notifications")
   });
+

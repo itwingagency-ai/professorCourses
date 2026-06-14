@@ -47,6 +47,27 @@ export const quizApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Quiz", "QuizAttempt"],
     }),
+    getAllQuizzesAdmin: builder.query<any, void>({
+      query: () => ({
+        url: `quiz/admin/all`,
+        method: "GET",
+      }),
+      providesTags: ["Quiz"],
+    }),
+    getAllQuizAttemptsAdmin: builder.query<any, void>({
+      query: () => ({
+        url: `quiz/admin/attempts`,
+        method: "GET",
+      }),
+      providesTags: ["QuizAttempt"],
+    }),
+    archiveQuizAdmin: builder.mutation<any, string>({
+      query: (quizId) => ({
+        url: `quiz/admin/archive/${quizId}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Quiz"],
+    }),
   }),
 });
 
@@ -57,4 +78,7 @@ export const {
   useCreateQuizMutation,
   useEditQuizMutation,
   useDeleteQuizMutation,
+  useGetAllQuizzesAdminQuery,
+  useGetAllQuizAttemptsAdminQuery,
+  useArchiveQuizAdminMutation,
 } = quizApi;

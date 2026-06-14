@@ -7,6 +7,7 @@ export interface IAssignment extends Document {
   dueDate: Date;
   totalMarks: number;
   createdBy: mongoose.Types.ObjectId;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,7 @@ const assignmentSchema = new Schema<IAssignment>(
       ref: "User",
       required: true,
     },
+    isArchived: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

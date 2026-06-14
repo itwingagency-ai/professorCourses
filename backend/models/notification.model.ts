@@ -16,7 +16,7 @@ export interface INotification extends Document {
 const notificationSchema = new Schema<INotification>(
   {
     userId: { type: String, required: false },
-    recipientRole: { type: String, enum: ["student", "teacher", "admin"], required: false },
+    recipientRole: { type: String, enum: ["student", "teacher", "admin", "user"], required: false },
     type: { type: String, required: false },
     title: { type: String, required: true },
     message: { type: String, required: true },
